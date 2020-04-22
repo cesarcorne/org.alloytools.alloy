@@ -52,7 +52,8 @@ public class NumbersTranslation {
        // String filename = "src/main/resources/models/util/int8bits.als";
         String filename = "src/test/resources/num-test.als";
         Module world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
-        Module int8, boolMod;
+        Module int8 = null;
+        Module boolMod = null;
         for (Module m : world.getAllReachableModules()){
             if (m.getModelName().equals("util/int8bits"))
                 int8 = m;
