@@ -1,6 +1,7 @@
 package org.alloytools.numbers;
 
 
+import com.sun.xml.internal.bind.v2.TODO;
 import edu.mit.csail.sdg.alloy4.A4Reporter;
 import edu.mit.csail.sdg.alloy4.ConstList;
 import edu.mit.csail.sdg.alloy4.ErrorWarning;
@@ -20,6 +21,9 @@ import java.util.List;
 
 public class NumbersTranslation {
 
+
+
+
     /**
      * Given a number translates to Number8 Signatures which represents an integer of 8 bits
      * @param number
@@ -34,15 +38,19 @@ public class NumbersTranslation {
        reverseNumInBit.setLength(8);
        Sig boolTrue = int8.getAllReachableModules().get(2).getAllSigs().get(1);
        Sig boolFalse = int8.getAllReachableModules().get(2).getAllSigs().get(2);
-       Expr e, leftExpr, rightExpr;
+       Expr e, leftField, rightExpr, leftSig;
        List<Expr> exprs = new LinkedList<Expr>();
        ExprList finalExprList;
        for (int i = 0; i < reverseNumInBit.length(); i++) {
-            leftExpr = bitNumber.getFieldDecls().get(i).expr;
-            rightExpr = (reverseNumInBit.charAt(i) == '1') ?  boolTrue.decl.expr : boolFalse.decl.expr;
-            e = leftExpr.equal(rightExpr);
+            leftField = bitNumber.getFields().get(i);
+            leftSig = bitNumber.join(leftField).resolve(bitNumber.type(), new JoinableList<ErrorWarning>());
+            rightExpr = (reverseNumInBit.charAt(i) == '1') ?  boolTrue : boolFalse;
+            rightExpr = rightExpr.resolve(bitNumber.type(), new JoinableList<ErrorWarning>());
+            e = leftSig.equal(rightExpr);
+            assert(e.errors.size() == 0);
             exprs.add(e);
        }
+       //makes the final expr list
        finalExprList = ExprList.make(bitNumber.pos, bitNumber.closingBracket, ExprList.Op.AND, exprs);
        return finalExprList;
     }
@@ -50,7 +58,7 @@ public class NumbersTranslation {
     @Test
     public void checkTranslation(){
        // String filename = "src/main/resources/models/util/int8bits.als";
-        String filename = "src/test/resources/num-test.als";
+        String filename = "src/test/resources/example.als";
         Module world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
         Module int8 = null;
         Module boolMod = null;
@@ -64,15 +72,19 @@ public class NumbersTranslation {
         ExprList result = NewTranslator(num,int8,boolMod);
         Assert.assertEquals(result.args.size(),8);
         System.out.println(result.toString());
+
+        Sig sig1 = int8.getAllSigs().get(0);
+        sig1.addFact(result);
+        Assert.assertEquals(result, sig1.getFacts().get(0));
     }
 
-    public void exprToFact(){
-
+    public void newSigWithFact(){
+        //TODO create a new signature one sig extends number8 and add fact
     }
 
     @Test
     public void checkFact(){
-
+        //TODO check new sig works
     }
 
 }
