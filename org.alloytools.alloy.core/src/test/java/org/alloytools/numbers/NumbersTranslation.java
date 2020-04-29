@@ -75,6 +75,13 @@ public class NumbersTranslation {
         Sig sig1 = int8.getAllSigs().get(0);
         sig1.addFact(result);
         Assert.assertEquals(result, sig1.getFacts().get(0));
+
+        Sig ghost = int8.getAllSigs().get(0);
+        Sig.PrimSig newSig = new Sig.PrimSig(ghost.label + "01", Attr.ONE);
+        for (Sig.Field f : ghost.getFields())
+            newSig.addDefinedField(f.pos, f.isPrivate, f.isMeta, f.label, f.resolve(f.type(), new JoinableList<ErrorWarning>()));
+        newSig.addFact(result);
+        //return newSig;
     }
 
     public void newSigWithFact(){
