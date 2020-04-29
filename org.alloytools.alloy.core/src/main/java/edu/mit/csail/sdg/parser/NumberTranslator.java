@@ -11,6 +11,17 @@ public class NumberTranslator {
 
     int bitRepresentation = 8;
 
+    Module int8, boolMod;
+
+    public NumberTranslator(Module world){
+        for (Module m : world.getAllReachableModules()){
+            if (m.getModelName().equals("util/int8bits"))
+                int8 = m;
+            if (m.getModelName().equals("util/boolean"))
+                boolMod = m;
+        }
+    }
+
     /**
      * Given a number makes the ExprList of its bit representation to add in a fact
      * @param number
@@ -18,7 +29,7 @@ public class NumberTranslator {
      * @param boolMod
      * @return
      */
-    private ExprList numberToFact(int number, Module int8, Module boolMod){
+    public ExprList numberToFact(int number){
         Sig bitNumber = int8.getAllSigs().get(0);
         StringBuilder reverseNumInBit = new StringBuilder(Integer.toBinaryString(number)).reverse();
         assert(reverseNumInBit.length() <= 8);
@@ -42,7 +53,7 @@ public class NumberTranslator {
         return finalExprList;
     }
 
-    public Sig newNumberSig(ExprList fact, Module int8){
+    public Sig newNumberSig(ExprList fact){
         Sig ghost = int8.getAllSigs().get(0);
         Sig.PrimSig newSig = new Sig.PrimSig(ghost.label + "01", Attr.ONE);
         for (Sig.Field f : ghost.getFields())

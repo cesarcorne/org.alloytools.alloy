@@ -8,6 +8,7 @@ import edu.mit.csail.sdg.alloy4.JoinableList;
 import edu.mit.csail.sdg.ast.*;
 import edu.mit.csail.sdg.parser.CompModule;
 import edu.mit.csail.sdg.parser.CompUtil;
+import edu.mit.csail.sdg.parser.NumberTranslator;
 import edu.mit.csail.sdg.translator.A4Options;
 import edu.mit.csail.sdg.translator.A4Solution;
 import edu.mit.csail.sdg.translator.TranslateAlloyToKodkod;
@@ -23,13 +24,48 @@ public class NumbersTranslation {
 
 
 
-    /**
+    String filename = "src/test/resources/example.als";
+    Module world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
+    int num = 22;
+
+
+    @Test
+    public void checkTranslation(){
+       // String filename = "src/main/resources/models/util/int8bits.als";
+
+        NumberTranslator translator = new NumberTranslator(world);
+        ExprList result = translator.numberToFact(num);
+
+        Assert.assertEquals(result.args.size(),8);
+        System.out.println(result.toString());
+    }
+
+
+    @Test
+    public void checkNewSig(){
+        Module moduleInt = null;
+        for (Module m : world.getAllReachableModules()) {
+            if (m.getModelName().equals("util/int8bits"))
+                moduleInt = m;
+        }
+        NumberTranslator translator = new NumberTranslator(world);
+        ExprList result = translator.numberToFact(22);
+        Sig sig1 = moduleInt.getAllSigs().get(0);
+        sig1.addFact(result);
+
+        Assert.assertEquals(result, sig1.getFacts().get(0));
+        Assert.assertEquals(sig1.getFacts(), translator.newNumberSig(result).getFacts());
+        Sig record = translator.newNumberSig(result);
+    }
+
+    /*
+
      * Given a number translates to Number8 Signatures which represents an integer of 8 bits
      * @param number
      * @param int8
      * @param boolMod
      * @return
-     */
+
    private ExprList NewTranslator(int number, Module int8, Module boolMod){
        Sig bitNumber = int8.getAllSigs().get(0);
        StringBuilder reverseNumInBit = new StringBuilder(Integer.toBinaryString(number)).reverse();
@@ -52,45 +88,9 @@ public class NumbersTranslation {
        //makes the final expr list
        finalExprList = ExprList.make(bitNumber.pos, bitNumber.closingBracket, ExprList.Op.AND, exprs);
        return finalExprList;
+
     }
 
-    @Test
-    public void checkTranslation(){
-       // String filename = "src/main/resources/models/util/int8bits.als";
-        String filename = "src/test/resources/example.als";
-        Module world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
-        Module int8 = null;
-        Module boolMod = null;
-        for (Module m : world.getAllReachableModules()){
-            if (m.getModelName().equals("util/int8bits"))
-                int8 = m;
-            if (m.getModelName().equals("util/boolean"))
-                boolMod = m;
-        }
-        int num = 22;
-        ExprList result = NewTranslator(num,int8,boolMod);
-        Assert.assertEquals(result.args.size(),8);
-        System.out.println(result.toString());
-
-        Sig sig1 = int8.getAllSigs().get(0);
-        sig1.addFact(result);
-        Assert.assertEquals(result, sig1.getFacts().get(0));
-
-        Sig ghost = int8.getAllSigs().get(0);
-        Sig.PrimSig newSig = new Sig.PrimSig(ghost.label + "01", Attr.ONE);
-        for (Sig.Field f : ghost.getFields())
-            newSig.addDefinedField(f.pos, f.isPrivate, f.isMeta, f.label, f.resolve(f.type(), new JoinableList<ErrorWarning>()));
-        newSig.addFact(result);
-        //return newSig;
-    }
-
-    public void newSigWithFact(){
-        //TODO create a new signature one sig extends number8 and add fact
-    }
-
-    @Test
-    public void checkFact(){
-        //TODO check new sig works
-    }
+*/
 
 }
