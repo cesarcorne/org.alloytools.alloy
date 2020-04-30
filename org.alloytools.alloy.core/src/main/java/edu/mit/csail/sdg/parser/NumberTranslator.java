@@ -12,22 +12,28 @@ public class NumberTranslator {
 
     int bitRepresentation = 8;
 
-    Module int8, boolMod;
+    Module int8;
+
+    private int serie = 0;
+    private final String signame = "num";
+
+    public Sig numberSigFactory(){
+        Sig.PrimSig ghost = (Sig.PrimSig)int8.getAllSigs().get(0);
+        Sig newSig = new Sig.PrimSig(signame + serie, ghost,Attr.ONE);
+        serie++;
+        return newSig;
+    }
 
     public NumberTranslator(Module world){
         for (Module m : world.getAllReachableModules()){
             if (m.getModelName().equals("util/int8bits"))
                 int8 = m;
-            if (m.getModelName().equals("util/boolean"))
-                boolMod = m;
         }
     }
 
     /**
      * Given a number makes the ExprList of its bit representation to add in a fact
      * @param number
-     * @param int8
-     * @param boolMod
      * @return
      */
     public ExprList numberToFact(int number){
@@ -56,7 +62,7 @@ public class NumberTranslator {
 
     public Sig newNumberSig(ExprList fact){
         Sig ghost = int8.getAllSigs().get(0);
-        Sig.PrimSig newSig = new Sig.PrimSig(ghost.label + "01", Attr.ONE);
+        Sig newSig = numberSigFactory();
         for (Sig.Field f : ghost.getFields())
             newSig.addDefinedField(f.pos, f.isPrivate, f.isMeta, f.label, f.resolve(f.type(), new JoinableList<ErrorWarning>()));
         newSig.addFact(fact);
@@ -115,12 +121,8 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprUnary x) throws Err {
-            //ExprUnary newExpr = ExprUnary.Op.ONEOF.
-            //ExprUnary newExpr =;
-            //int8.getAllSigs().get(0).
-            //x.sub = int8.getAllSigs().get(0);
-            return (ExprUnary) int8.getAllSigs().get(0).oneOf();
-
+            System.out.println("In visitor : " + x);
+            return numberSigFactory().oneOf();
         }
 
         @Override

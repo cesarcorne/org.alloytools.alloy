@@ -41,7 +41,7 @@ public class NumbersTranslation {
         }
         NumberTranslator translator = new NumberTranslator(world);
         ExprList result = translator.numberToFact(22);
-        Sig sig1 = moduleInt.getAllSigs().get(0);
+        Sig sig1 = translator.numberSigFactory();
         sig1.addFact(result);
 
         Assert.assertEquals(result, sig1.getFacts().get(0));
