@@ -1,5 +1,6 @@
 package edu.mit.csail.sdg.parser;
 
+import edu.mit.csail.sdg.alloy4.Err;
 import edu.mit.csail.sdg.alloy4.ErrorWarning;
 import edu.mit.csail.sdg.alloy4.JoinableList;
 import edu.mit.csail.sdg.ast.*;
@@ -62,5 +63,80 @@ public class NumberTranslator {
         return newSig;
     }
 
+
+    public void replacePred(Func f){
+       NumberTranslator.NumberVisitor visitor = new NumberTranslator.NumberVisitor();
+       for (Decl d : f.decls){
+            if (d.expr.type().is_int()) {
+                d = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
+            }
+       }
+    }
+
+
+
+    public class NumberVisitor extends VisitReturn<Expr>{
+
+        public NumberVisitor(){}
+        @Override
+        public Expr visit(ExprBinary x) throws Err {
+            return x;
+        }
+
+        @Override
+        public Expr visit(ExprList x) throws Err {
+            return x;
+        }
+
+        @Override
+        public Expr visit(ExprCall x) throws Err {
+            return x;
+        }
+
+        @Override
+        public Expr visit(ExprConstant x) throws Err {
+            return x;
+        }
+
+        @Override
+        public Expr visit(ExprITE x) throws Err {
+            return x;
+        }
+
+        @Override
+        public Expr visit(ExprLet x) throws Err {
+            return x;
+        }
+
+        @Override
+        public Expr visit(ExprQt x) throws Err {
+            return x;
+        }
+
+        @Override
+        public Expr visit(ExprUnary x) throws Err {
+            //ExprUnary newExpr = ExprUnary.Op.ONEOF.
+            //ExprUnary newExpr =;
+            //int8.getAllSigs().get(0).
+            //x.sub = int8.getAllSigs().get(0);
+            return (ExprUnary) int8.getAllSigs().get(0).oneOf();
+
+        }
+
+        @Override
+        public Expr visit(ExprVar x) throws Err {
+            return null;
+        }
+
+        @Override
+        public Expr visit(Sig x) throws Err {
+            return x;
+        }
+
+        @Override
+        public Expr visit(Sig.Field x) throws Err {
+            return x;
+        }
+    }
 
 }

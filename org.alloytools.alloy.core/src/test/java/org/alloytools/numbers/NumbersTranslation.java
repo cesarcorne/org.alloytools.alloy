@@ -2,42 +2,33 @@ package org.alloytools.numbers;
 
 
 import edu.mit.csail.sdg.alloy4.A4Reporter;
-import edu.mit.csail.sdg.alloy4.ConstList;
-import edu.mit.csail.sdg.alloy4.ErrorWarning;
-import edu.mit.csail.sdg.alloy4.JoinableList;
 import edu.mit.csail.sdg.ast.*;
-import edu.mit.csail.sdg.parser.CompModule;
 import edu.mit.csail.sdg.parser.CompUtil;
 import edu.mit.csail.sdg.parser.NumberTranslator;
-import edu.mit.csail.sdg.translator.A4Options;
-import edu.mit.csail.sdg.translator.A4Solution;
-import edu.mit.csail.sdg.translator.TranslateAlloyToKodkod;
 import org.junit.Test;
 import org.junit.Assert;
-import org.junit.runners.JUnit4;
 
-import java.util.LinkedList;
-import java.util.List;
 
 public class NumbersTranslation {
 
 
 
-
-    String filename = "src/test/resources/example.als";
+    // String filename = "src/main/resources/models/util/int8bits.als";
+    // String filename = "src/test/resources/example.als";
+    String filename = "src/test/resources/num-test.als";
     Module world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
     int num = 22;
 
 
     @Test
     public void checkTranslation(){
-       // String filename = "src/main/resources/models/util/int8bits.als";
-
         NumberTranslator translator = new NumberTranslator(world);
         ExprList result = translator.numberToFact(num);
 
         Assert.assertEquals(result.args.size(),8);
         System.out.println(result.toString());
+        for (Func f : world.getAllFunc())
+            translator.replacePred(f);
     }
 
 
@@ -57,6 +48,9 @@ public class NumbersTranslation {
         Assert.assertEquals(sig1.getFacts(), translator.newNumberSig(result).getFacts());
         Sig record = translator.newNumberSig(result);
     }
+
+
+
 
     /*
 
