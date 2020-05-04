@@ -77,6 +77,10 @@ public class NumberTranslator {
                 d = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
             }
        }
+
+       Expr toReplace = f.getBody().accept(visitor);
+       f.setBody(toReplace);
+
     }
 
 
@@ -96,6 +100,10 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprCall x) throws Err {
+            if (x.fun.label.startsWith("integer/"))
+                for (Func f : int8.getAllFunc())
+                    if (f.label.contains(x.fun.label.substring(7,x.fun.label.length())))
+                        return ExprCall.make(x.pos,x.pos,f,x.args,x.extraWeight);
             return x;
         }
 
@@ -121,15 +129,19 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprUnary x) throws Err {
-            System.out.println("In visitor : " + x);
+            System.out.println("In visitor ExprUnary : " + x);
             //return numberSigFactory().oneOf();
-            return int8.getAllSigs().get(0).oneOf();
+            if (x.type().is_int())
+                return int8.getAllSigs().get(0).oneOf();
+            else
+                return x.sub.accept(this);
         }
 
         @Override
         public Expr visit(ExprVar x) throws Err {
-            System.out.println("In visitor : " + x);
-            return numberSigFactory().oneOf();
+            System.out.println("In visitor ExprVar: " + x);
+            //return numberSigFactory().oneOf();
+            return int8.getAllSigs().get(0).oneOf();
         }
 
         @Override

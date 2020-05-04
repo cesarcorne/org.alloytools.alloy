@@ -10,6 +10,6 @@ sig B {
     field.b00 = True
 }
 
-pred prueba [a : A, b: Int]{
-
+pred prueba [a, b: Int]{
+    eq[a,b]
 }
