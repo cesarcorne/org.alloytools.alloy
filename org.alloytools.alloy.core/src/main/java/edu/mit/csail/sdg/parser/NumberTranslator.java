@@ -122,12 +122,14 @@ public class NumberTranslator {
         @Override
         public Expr visit(ExprUnary x) throws Err {
             System.out.println("In visitor : " + x);
-            return numberSigFactory().oneOf();
+            //return numberSigFactory().oneOf();
+            return int8.getAllSigs().get(0).oneOf();
         }
 
         @Override
         public Expr visit(ExprVar x) throws Err {
-            return null;
+            System.out.println("In visitor : " + x);
+            return numberSigFactory().oneOf();
         }
 
         @Override
