@@ -1,10 +1,12 @@
 package edu.mit.csail.sdg.parser;
 
+import edu.mit.csail.sdg.alloy4.ConstList;
 import edu.mit.csail.sdg.alloy4.Err;
 import edu.mit.csail.sdg.alloy4.ErrorWarning;
 import edu.mit.csail.sdg.alloy4.JoinableList;
 import edu.mit.csail.sdg.ast.*;
 
+import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -13,6 +15,10 @@ public class NumberTranslator {
     int bitRepresentation = 8;
 
     Module int8;
+
+    Module world;
+
+    final Sig number8;
 
     private int serie = 0;
     private final String signame = "num";
@@ -29,6 +35,8 @@ public class NumberTranslator {
             if (m.getModelName().equals("util/int8bits"))
                 int8 = m;
         }
+        number8 = int8.getAllSigs().get(0);
+        this.world = world;
     }
 
     /**
@@ -37,7 +45,6 @@ public class NumberTranslator {
      * @return
      */
     public ExprList numberToFact(int number){
-        Sig bitNumber = int8.getAllSigs().get(0);
         StringBuilder reverseNumInBit = new StringBuilder(Integer.toBinaryString(number)).reverse();
         assert(reverseNumInBit.length() <= 8);
         reverseNumInBit.setLength(8);
@@ -47,21 +54,21 @@ public class NumberTranslator {
         List<Expr> exprs = new LinkedList<Expr>();
         ExprList finalExprList;
         for (int i = 0; i < reverseNumInBit.length(); i++) {
-            leftField = bitNumber.getFields().get(i);
-            leftSig = bitNumber.join(leftField).resolve(bitNumber.type(), new JoinableList<ErrorWarning>());
+            leftField = number8.getFields().get(i);
+            leftSig = number8.join(leftField).resolve(number8.type(), new JoinableList<ErrorWarning>());
             rightExpr = (reverseNumInBit.charAt(i) == '1') ?  boolTrue : boolFalse;
-            rightExpr = rightExpr.resolve(bitNumber.type(), new JoinableList<ErrorWarning>());
+            rightExpr = rightExpr.resolve(number8.type(), new JoinableList<ErrorWarning>());
             e = leftSig.equal(rightExpr);
             assert(e.errors.size() == 0);
             exprs.add(e);
         }
         //makes the final expr list
-        finalExprList = ExprList.make(bitNumber.pos, bitNumber.closingBracket, ExprList.Op.AND, exprs);
+        finalExprList = ExprList.make(number8.pos, number8.closingBracket, ExprList.Op.AND, exprs);
         return finalExprList;
     }
 
     public Sig newNumberSig(ExprList fact){
-        Sig ghost = int8.getAllSigs().get(0);
+        Sig ghost = number8;
         Sig newSig = numberSigFactory();
         for (Sig.Field f : ghost.getFields())
             newSig.addDefinedField(f.pos, f.isPrivate, f.isMeta, f.label, f.resolve(f.type(), new JoinableList<ErrorWarning>()));
@@ -72,15 +79,14 @@ public class NumberTranslator {
 
     public void replacePred(Func f){
        NumberTranslator.NumberVisitor visitor = new NumberTranslator.NumberVisitor();
+       Func oldF = f;
        for (Decl d : f.decls){
             if (d.expr.type().is_int()) {
                 d = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
             }
        }
-
        Expr toReplace = f.getBody().accept(visitor);
        f.setBody(toReplace);
-
     }
 
 
@@ -95,6 +101,7 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprList x) throws Err {
+
             return x;
         }
 
@@ -102,13 +109,27 @@ public class NumberTranslator {
         public Expr visit(ExprCall x) throws Err {
             if (x.fun.label.startsWith("integer/"))
                 for (Func f : int8.getAllFunc())
-                    if (f.label.contains(x.fun.label.substring(7,x.fun.label.length())))
-                        return ExprCall.make(x.pos,x.pos,f,x.args,x.extraWeight);
+                    if (f.label.contains(x.fun.label.substring(7,x.fun.label.length()))) {
+                        LinkedList<Expr> newArgs = new LinkedList<Expr>();
+                        for (Expr e : x.args){
+                            if (e.type().is_int())
+                                newArgs.add(e.accept(this));
+                            else
+                                newArgs.add(e);
+                        }
+                        return ExprCall.make(x.pos, x.pos, f, newArgs, x.extraWeight);
+                    }
             return x;
         }
 
         @Override
         public Expr visit(ExprConstant x) throws Err {
+            Sig newNum;
+            if (x.type().is_int()){
+                newNum = newNumberSig(numberToFact(x.num));
+                world.getAllSigs().add(newNum);
+                return newNum;
+            }
             return x;
         }
 
@@ -129,19 +150,27 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprUnary x) throws Err {
-            System.out.println("In visitor ExprUnary : " + x);
+            //System.out.println("In visitor ExprUnary : " + x);
             //return numberSigFactory().oneOf();
-            if (x.type().is_int())
-                return int8.getAllSigs().get(0).oneOf();
-            else
+            //if (x.type().is_int()) {
+            //    if (x.op.equals(ExprUnary.Op.CAST2SIGINT)) {
+            //        return x.sub.accept(this);
+            //    } else {
+            //        return x.sub.accept(this);
+            //    }
+            //}else
                 return x.sub.accept(this);
+            //return x;
         }
 
         @Override
         public Expr visit(ExprVar x) throws Err {
-            System.out.println("In visitor ExprVar: " + x);
+            //System.out.println("In visitor ExprVar: " + x);
             //return numberSigFactory().oneOf();
-            return int8.getAllSigs().get(0).oneOf();
+            if (x.type().is_int())
+                return ExprVar.make(x.pos,x.label,number8.type());
+            else
+                return x;
         }
 
         @Override

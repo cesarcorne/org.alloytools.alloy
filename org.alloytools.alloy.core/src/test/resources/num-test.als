@@ -11,5 +11,5 @@ sig B {
 }
 
 pred prueba [a, b: Int]{
-    eq[a,b]
+    eq[a,10]
 }
