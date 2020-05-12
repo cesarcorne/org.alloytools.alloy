@@ -5,8 +5,8 @@ import edu.mit.csail.sdg.alloy4.Err;
 import edu.mit.csail.sdg.alloy4.ErrorWarning;
 import edu.mit.csail.sdg.alloy4.JoinableList;
 import edu.mit.csail.sdg.ast.*;
+import sun.awt.image.ImageWatched;
 
-import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,13 +20,13 @@ public class NumberTranslator {
 
     final Sig number8;
 
-    private int serie = 0;
+    private int serial = 0;
     private final String signame = "num";
 
     public Sig numberSigFactory(){
         Sig.PrimSig ghost = (Sig.PrimSig)int8.getAllSigs().get(0);
-        Sig newSig = new Sig.PrimSig(signame + serie, ghost,Attr.ONE);
-        serie++;
+        Sig newSig = new Sig.PrimSig(signame + serial, ghost,Attr.ONE);
+        serial++;
         return newSig;
     }
 
@@ -94,14 +94,18 @@ public class NumberTranslator {
     public class NumberVisitor extends VisitReturn<Expr>{
 
         public NumberVisitor(){}
+
         @Override
         public Expr visit(ExprBinary x) throws Err {
-            return x;
+            return x.op.make(x.pos,x.closingBracket,x.left.accept(this),x.left.accept(this));
         }
 
         @Override
         public Expr visit(ExprList x) throws Err {
-
+            LinkedList<Expr> newArgs = new LinkedList<Expr>();
+            for (Expr newArg : x.args)
+                newArgs.add(newArg.accept(this));
+            ExprList nList = ExprList.make(x.pos,x.closingBracket,x.op,ConstList.make(newArgs));
             return x;
         }
 
@@ -117,7 +121,7 @@ public class NumberTranslator {
                             else
                                 newArgs.add(e);
                         }
-                        return ExprCall.make(x.pos, x.pos, f, newArgs, x.extraWeight);
+                        return ExprCall.make(x.pos, x.pos, f, ConstList.make(newArgs), x.extraWeight);
                     }
             return x;
         }
@@ -135,17 +139,26 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprITE x) throws Err {
-            return x;
+            return ExprITE.make(x.pos, x.cond.accept(this), x.left.accept(this), x.right.accept(this));
         }
 
         @Override
         public Expr visit(ExprLet x) throws Err {
-            return x;
+            return  ExprLet.make(x.pos, (ExprVar) x.var.accept(this), x.expr.accept(this), x.sub.accept(this));
+            //return ExprLet.make(x.pos, x.var.accept(this), x.expr.accept(this), x.sub.accept(this));
         }
 
         @Override
         public Expr visit(ExprQt x) throws Err {
-            return x;
+            //LinkedList<Expr> newDecl
+            List<Decl> newDecl = new LinkedList<Decl>();
+            for (Decl d : x.decls){
+                Decl nD = new Decl(d.isPrivate,d.disjoint,d.disjoint2,d.names,d.expr.accept(this));
+                newDecl.add(nD);
+            }
+            //x.decls = ConstList.make(newDecl);
+            ExprQt newExprQt = (ExprQt) x.op.make(x.pos,x.closingBracket,ConstList.make(newDecl),x.sub);
+            return newExprQt.sub.accept(this);
         }
 
         @Override
@@ -159,8 +172,7 @@ public class NumberTranslator {
             //        return x.sub.accept(this);
             //    }
             //}else
-                return x.sub.accept(this);
-            //return x;
+            return x.sub.accept(this);
         }
 
         @Override
@@ -175,6 +187,7 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(Sig x) throws Err {
+            
             return x;
         }
 
