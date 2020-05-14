@@ -5,7 +5,6 @@ import edu.mit.csail.sdg.alloy4.Err;
 import edu.mit.csail.sdg.alloy4.ErrorWarning;
 import edu.mit.csail.sdg.alloy4.JoinableList;
 import edu.mit.csail.sdg.ast.*;
-import sun.awt.image.ImageWatched;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -97,7 +96,9 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprBinary x) throws Err {
-            return x.op.make(x.pos,x.closingBracket,x.left.accept(this),x.left.accept(this));
+            System.out.println("aca");
+                return x.op.make(x.pos,x.closingBracket,x.left.accept(this),x.right.accept(this));
+
         }
 
         @Override
@@ -106,7 +107,7 @@ public class NumberTranslator {
             for (Expr newArg : x.args)
                 newArgs.add(newArg.accept(this));
             ExprList nList = ExprList.make(x.pos,x.closingBracket,x.op,ConstList.make(newArgs));
-            return x;
+            return nList;
         }
 
         @Override
@@ -172,7 +173,11 @@ public class NumberTranslator {
             //        return x.sub.accept(this);
             //    }
             //}else
+            //if (x.op.equals(ExprUnary.Op.NOOP)){
+             //   System.out.println("en noop" + x.toString());
+            //}
             return x.sub.accept(this);
+            //return x.op.make(x.pos, x.sub.accept(this));
         }
 
         @Override
@@ -187,13 +192,19 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(Sig x) throws Err {
-            
-            return x;
+            System.out.println("Sig type : " + x.type());
+            if (x.label.equals("Int"))
+                return number8;
+            else
+                return x;
+
         }
 
         @Override
         public Expr visit(Sig.Field x) throws Err {
-            return x;
+            System.out.println("SigField type : " + x.type());
+            //Sig newSig = new Sig(x.label, )
+            return x.sig.accept(this);
         }
     }
 
