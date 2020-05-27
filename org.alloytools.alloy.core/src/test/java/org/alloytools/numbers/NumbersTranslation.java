@@ -4,6 +4,7 @@ package org.alloytools.numbers;
 import edu.mit.csail.sdg.alloy4.A4Reporter;
 import edu.mit.csail.sdg.alloy4.Err;
 import edu.mit.csail.sdg.ast.*;
+import edu.mit.csail.sdg.parser.CompModule;
 import edu.mit.csail.sdg.parser.CompUtil;
 import edu.mit.csail.sdg.parser.NumberTranslator;
 import org.junit.Test;
@@ -254,6 +255,7 @@ public class NumbersTranslation {
 
         Assert.assertEquals(result.args.size(),8);
         System.out.println(result.toString());
+        System.out.println("Test 1");
         for (Func f : world.getAllFunc())
             translator.replacePred(f);
     }
@@ -270,6 +272,7 @@ public class NumbersTranslation {
         ExprList result = translator.numberToFact(22);
         Sig sig1 = translator.numberSigFactory();
         sig1.addFact(result);
+        System.out.println("Test 2");
 
         Assert.assertEquals(result, sig1.getFacts().get(0));
         Assert.assertEquals(sig1.getFacts(), translator.newNumberSig(result).getFacts());
@@ -287,6 +290,7 @@ public class NumbersTranslation {
         Func pred = world.getAllFunc().get(0);
         CountInt countViz = new CountInt();
         Integer result = pred.getBody().accept(countViz);
+        System.out.println("Test 3");
 
         NumberTranslator translator = new NumberTranslator(world);
         translator.replacePred(pred);
@@ -298,7 +302,44 @@ public class NumbersTranslation {
     }
 
     @Test
-    public void IntegrationTest2(){}
+    public void IntegrationTest2(){
+        String filename = "src/test/resources/sig-test.als";
+        CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
+        System.out.println("Test 4");
+
+        System.out.println(world.getAllSigs().get(0).getFields().get(0).type());
+        NumberTranslator translator = new NumberTranslator(world);
+        System.out.println("prueba translator: " + translator.translateSigs(world.getAllSigs().get(0)).getFields().get(0).type());
+        world.replaceSig(world.getAllSigs().get(0),translator.translateSigs(world.getAllSigs().get(0)));
+        System.out.println("a ver-> : " + world.getAllSigs().get(0).getFields().get(0).type());
+
+    }
+
+    @Test
+    public void JoinTest(){
+        String filename = "src/test/resources/Join-test.als";
+        CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
+
+        System.out.println(world.getAllSigs().get(0).getFields().get(0).type());
+        NumberTranslator translator = new NumberTranslator(world);
+        System.out.println("prueba translator: " + translator.translateSigs(world.getAllSigs().get(0)).getFields().get(0).type());
+        world.replaceSig(world.getAllSigs().get(0),translator.translateSigs(world.getAllSigs().get(0)));
+        System.out.println("a ver-> : " + world.getAllSigs().get(0).getFields().get(0).type());
+
+        System.out.println("Test 5");
+
+        Func pred = world.getAllFunc().get(0);
+        CountInt countViz = new CountInt();
+        Integer result = pred.getBody().accept(countViz);
+
+        NumberTranslator translator2 = new NumberTranslator(world);
+        translator2.replacePred(pred);
+
+        CountNum8 countNum8Viz = new CountNum8();
+        Integer newResult = pred.getBody().accept(countNum8Viz);
+
+        Assert.assertEquals(result, newResult);
+    }
 
     
 

@@ -2441,4 +2441,22 @@ public final class CompModule extends Browsable implements Module {
         return "module " + moduleName;
     }
 
+
+
+    //**
+    //
+    //
+    // Arithmetic methods
+    //
+    // *//
+
+    public void replaceSig(Sig old, Sig newOne){
+        for (String labelOfSigs : this.sigs.keySet()){
+
+            if (labelOfSigs.equals(old.label.subSequence(old.label.lastIndexOf('/')+1, old.label.length()))){
+                this.sigs.replace(labelOfSigs, old, newOne);
+            }
+        }
+    }
+
 }

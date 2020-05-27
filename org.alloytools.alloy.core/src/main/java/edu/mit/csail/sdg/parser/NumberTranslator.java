@@ -5,6 +5,7 @@ import edu.mit.csail.sdg.alloy4.Err;
 import edu.mit.csail.sdg.alloy4.ErrorWarning;
 import edu.mit.csail.sdg.alloy4.JoinableList;
 import edu.mit.csail.sdg.ast.*;
+import sun.awt.image.ImageWatched;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -79,16 +80,52 @@ public class NumberTranslator {
     public void replacePred(Func f){
        NumberTranslator.NumberVisitor visitor = new NumberTranslator.NumberVisitor();
        Func oldF = f;
-       for (Decl d : f.decls){
-            if (d.expr.type().is_int()) {
-                d = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
-            }
+       List<Decl> newDecls = new LinkedList<Decl>();
+       for (Expr param : f.params()){
+           if (param.type().is_int()){
+               Expr oldParam = param;
+               Expr newParam = param.accept(visitor);
+               f.params().remove(oldParam);
+               f.params().add((ExprVar) newParam);
+           }
        }
+       /*for (Decl d : f.decls){
+            if (d.expr.type().is_int()) {
+                System.out.println("ver una decl : " +  d.expr.toString());
+                Decl old = d;
+                Decl toreplace = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
+                //newDecls.add(d);
+                f.decls.remove(old);
+                f.decls.add(toreplace);
+            }else{
+                newDecls.add(d);
+            }/*
+           Decl old = d;
+           Decl toreplace = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
+           newDecls.add(d);
+           f.decls.remove(old);
+           f.decls.add(toreplace);
+           */
+       //}
+       //f.decls.re;
        Expr toReplace = f.getBody().accept(visitor);
+
        f.setBody(toReplace);
+       if (!f.decls.isEmpty())
+           System.out.println("cambia el param? : " + f.decls.get(0).expr.type());
     }
 
 
+
+    public Sig translateSigs(Sig signature){
+        Sig newSig = new Sig.PrimSig(signature.label, signature.attributes.get(0));
+        NumberVisitor visitor = new NumberVisitor();
+       for (Sig.Field f : signature.getFields()){
+            newSig.addField(f.label, f.decl().expr.accept(visitor));
+        }
+        System.out.println("new type ? : " + newSig.getFields().get(0).type());
+        return newSig;
+    }
 
     public class NumberVisitor extends VisitReturn<Expr>{
 
@@ -195,16 +232,22 @@ public class NumberTranslator {
             System.out.println("Sig type : " + x.type());
             if (x.label.equals("Int"))
                 return number8;
-            else
-                return x;
+            Sig newSig = new Sig.PrimSig(x.label, x.attributes.get(0));
+            List<Sig.Field> newFields = new LinkedList<Sig.Field>();
+            for (Sig.Field f : x.getFields()){
+                    newSig.addField(f.label, f.decl().expr.accept(this));
+            }
 
+
+            return newSig;
         }
 
         @Override
         public Expr visit(Sig.Field x) throws Err {
             System.out.println("SigField type : " + x.type());
             //Sig newSig = new Sig(x.label, )
-            return x.sig.accept(this);
+
+            return x;
         }
     }
 
