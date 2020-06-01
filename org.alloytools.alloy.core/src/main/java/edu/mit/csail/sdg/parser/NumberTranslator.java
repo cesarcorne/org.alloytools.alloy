@@ -89,25 +89,17 @@ public class NumberTranslator {
                f.params().add((ExprVar) newParam);
            }
        }
-       /*for (Decl d : f.decls){
+       for (Decl d : f.decls){
             if (d.expr.type().is_int()) {
                 System.out.println("ver una decl : " +  d.expr.toString());
                 Decl old = d;
                 Decl toreplace = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
-                //newDecls.add(d);
-                f.decls.remove(old);
-                f.decls.add(toreplace);
+                newDecls.add(toreplace);
             }else{
                 newDecls.add(d);
-            }/*
-           Decl old = d;
-           Decl toreplace = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
-           newDecls.add(d);
-           f.decls.remove(old);
-           f.decls.add(toreplace);
-           */
-       //}
-       //f.decls.re;
+            }
+       }
+       f.replaceDecls(ConstList.make(newDecls));
        Expr toReplace = f.getBody().accept(visitor);
 
        f.setBody(toReplace);

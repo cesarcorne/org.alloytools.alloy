@@ -68,7 +68,7 @@ public final class Func extends Browsable implements Clause {
      * The list of parameter declarations; may be an empty list if this
      * predicate/function has no parameters.
      */
-    public final ConstList<Decl> decls;
+    public ConstList<Decl> decls;
 
     /** The declared return type; never null. */
     public final Expr            returnDecl;
@@ -324,4 +324,8 @@ public final class Func extends Browsable implements Clause {
         return sb.toString();
     }
 
+
+    public void replaceDecls(ConstList<Decl> newDecls){
+        this.decls = newDecls;
+    }
 }
