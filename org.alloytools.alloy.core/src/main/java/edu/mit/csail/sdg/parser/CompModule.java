@@ -278,7 +278,7 @@ public final class CompModule extends Browsable implements Module {
         /** The level of macro substitution recursion. */
         public final int               unrolls;
 
-        public final boolean           isIntsNotUsed;
+        public boolean           isIntsNotUsed;
 
         /**
          * Associates the given name with the given expression in the current lexical
@@ -2107,6 +2107,7 @@ public final class CompModule extends Browsable implements Module {
         final List<ErrorWarning> warns = new ArrayList<ErrorWarning>();
         for (CompModule m : root.getAllReachableModules())
             root.allModules.add(m);
+
         resolveParams(rep, root.allModules);
         resolveModules(rep, root.allModules);
         for (CompModule m : root.allModules)
@@ -2142,6 +2143,7 @@ public final class CompModule extends Browsable implements Module {
         rejectNameClash(root.allModules);
         // Typecheck the function bodies, assertions, and facts (which can refer
         // to function declarations)
+
         for (CompModule x : root.allModules) {
             errors = x.resolveFuncBody(rep, errors, warns);
             errors = x.resolveAssertions(rep, errors, warns);
@@ -2154,6 +2156,15 @@ public final class CompModule extends Browsable implements Module {
                     root.exactSigs.add(sig);
             }
         }
+
+        //Number translation from int to NumberX
+
+        NumberTranslator numTranslator = new NumberTranslator(root);
+        numTranslator.translateAllSigs();
+        numTranslator.translateAllFuncs();
+        numTranslator.translateAllAssertions();
+
+
         if (!errors.isEmpty())
             throw errors.pick();
         // Typecheck the run/check commands (which can refer to function bodies
@@ -2457,6 +2468,12 @@ public final class CompModule extends Browsable implements Module {
                 this.sigs.replace(labelOfSigs, old, newOne);
             }
         }
+
+    }
+
+    public void addSignature(Sig newSig){
+
+        this.sigs.put(newSig.label, newSig);
     }
 
 }
