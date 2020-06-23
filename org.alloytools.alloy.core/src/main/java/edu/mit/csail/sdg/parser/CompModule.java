@@ -2163,7 +2163,16 @@ public final class CompModule extends Browsable implements Module {
         numTranslator.translateAllSigs();
         numTranslator.translateAllFuncs();
         numTranslator.translateAllAssertions();
-
+        CompModule saveInt = null;
+        boolean found = false;
+        for (CompModule x : root.allModules){
+            if (x.getModelName().equals("util/integer")) {
+                saveInt = x;
+                found = true;
+            }
+        }
+        if (found == true)
+            root.allModules.remove(saveInt);
 
         if (!errors.isEmpty())
             throw errors.pick();

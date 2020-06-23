@@ -39,7 +39,7 @@ public class NumberTranslator {
      */
     public Sig numberSigFactory(){
         Sig.PrimSig ghost = (Sig.PrimSig)int8.getAllSigs().get(0);
-        Sig newSig = new Sig.PrimSig(signame + serial,(Sig.PrimSig) number8,Attr.ONE,Attr.SUBSIG);
+        Sig newSig = new Sig.PrimSig(signame + serial,(Sig.PrimSig) number8,Attr.SUBSIG,Attr.ONE,Attr.BUILTIN);
         serial++;
         return newSig;
     }
@@ -61,15 +61,10 @@ public class NumberTranslator {
         Sig result = numberSigFactory();
         for (int i = 0; i < reverseNumInBit.length(); i++) {
             leftField = number8.getFields().get(i);
-            System.out.println("Left field : " + leftField.toString());
             leftExpr = result.join(leftField).resolve(number8.type(), new JoinableList<ErrorWarning>());
-            System.out.println("Left Sig : " + result.toString());
             rightExpr = (reverseNumInBit.charAt(i) == '1') ?  boolTrue : boolFalse;
-            System.out.println("Right Expr : " + rightExpr.toString());
             rightExpr = rightExpr.resolve(number8.type(), new JoinableList<ErrorWarning>());
-            System.out.println("Right Expr 2 : " + rightExpr.toString());
             e = result.equal(rightExpr);
-            System.out.println("E : " + e.toString());
             assert(e.errors.size() == 0);
             exprs.add(e);
         }
@@ -89,9 +84,6 @@ public class NumberTranslator {
 
     public Sig newNumberSig(ExprList fact){
         Sig newSig = numberSigFactory();
-        //for (Sig.Field f : ghost.getFields())
-        //    newSig.addDefinedField(f.pos, f.isPrivate, f.isMeta, f.label, f.resolve(f.type(), new JoinableList<ErrorWarning>()));
-        System.out.println("Is subsig? : " + newSig.isSubsig);
         newSig.addFact(fact);
         return newSig;
     }
@@ -114,7 +106,6 @@ public class NumberTranslator {
        }
        for (Decl d : f.decls){
             if (d.expr.type().is_int()) {
-                System.out.println("ver una decl : " +  d.expr.toString());
                 Decl old = d;
                 Decl toreplace = new Decl(d.isPrivate, d.disjoint, d.disjoint2, d.names, d.expr.accept(visitor));
                 newDecls.add(toreplace);
@@ -126,8 +117,6 @@ public class NumberTranslator {
        Expr toReplace = f.getBody().accept(visitor);
        toReplace.typecheck_as_formula();
        f.setBody(toReplace);
-       //if (!f.decls.isEmpty())
-       //    System.out.println("cambia el param? : " + f.decls.get(0).expr.type());
     }
 
 
@@ -142,7 +131,6 @@ public class NumberTranslator {
        for (Sig.Field f : signature.getFields()){
             newSig.addField(f.label, f.decl().expr.accept(visitor));
         }
-        //System.out.println("new type ? : " + newSig.getFields().get(0).type());
         return newSig;
     }
 
@@ -164,14 +152,20 @@ public class NumberTranslator {
             assertion.b = assertion.b.accept(visitor);
     }
 
+    public void translateAllFacts(){
+        NumberVisitor visitor = new NumberVisitor();
+        for (Pair<String, Expr> fact : world.getAllFacts()){
+            fact.b = fact.b.accept(visitor);
+        }
+    }
+
     public class NumberVisitor extends VisitReturn<Expr>{
 
         public NumberVisitor(){}
 
         @Override
         public Expr visit(ExprBinary x) throws Err {
-            System.out.println("aca");
-                return x.op.make(x.pos,x.closingBracket,x.left.accept(this),x.right.accept(this));
+            return x.op.make(x.pos,x.closingBracket,x.left.accept(this),x.right.accept(this));
 
         }
 
@@ -206,7 +200,6 @@ public class NumberTranslator {
             Sig newNum;
             if (x.type().is_int()){
                 newNum = numberToFact(x.num);
-
                 return newNum;
             }
             return x;
@@ -220,18 +213,15 @@ public class NumberTranslator {
         @Override
         public Expr visit(ExprLet x) throws Err {
             return  ExprLet.make(x.pos, (ExprVar) x.var.accept(this), x.expr.accept(this), x.sub.accept(this));
-            //return ExprLet.make(x.pos, x.var.accept(this), x.expr.accept(this), x.sub.accept(this));
         }
 
         @Override
         public Expr visit(ExprQt x) throws Err {
-            //LinkedList<Expr> newDecl
             List<Decl> newDecl = new LinkedList<Decl>();
             for (Decl d : x.decls){
                 Decl nD = new Decl(d.isPrivate,d.disjoint,d.disjoint2,d.names,d.expr.accept(this));
                 newDecl.add(nD);
             }
-            //x.decls = ConstList.make(newDecl);
             ExprQt newExprQt = (ExprQt) x.op.make(x.pos,x.closingBracket,ConstList.make(newDecl),x.sub);
             return newExprQt.sub.accept(this);
         }
@@ -256,8 +246,6 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprVar x) throws Err {
-            //System.out.println("In visitor ExprVar: " + x);
-            //return numberSigFactory().oneOf();
             if (x.type().is_int())
                 return ExprVar.make(x.pos,x.label,number8.type());
             else
@@ -266,7 +254,6 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(Sig x) throws Err {
-           System.out.println("Sig type : " + x.type());
             if (x.label.equals("Int"))
                 return number8;
             Sig newSig = new Sig.PrimSig(x.label, x.attributes.get(0));
@@ -274,16 +261,12 @@ public class NumberTranslator {
             for (Sig.Field f : x.getFields()){
                     newSig.addField(f.label, f.decl().expr.accept(this));
             }
-
-            //return x;
             return newSig;
         }
 
         @Override
         public Expr visit(Sig.Field x) throws Err {
-            System.out.println("SigField type : " + x.type());
             //Sig newSig = new Sig(x.label, )
-
             return x;
         }
     }
