@@ -33,7 +33,7 @@ public final class Pair<A, B> implements Serializable {
     public final A            a;
 
     /** The second half of the pair. */
-    public final B            b;
+    public B            b;
 
     /** Constructs a new Pair object (a,b). */
     public Pair(A a, B b) {

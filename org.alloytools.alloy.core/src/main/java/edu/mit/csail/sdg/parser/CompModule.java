@@ -1652,6 +1652,10 @@ public final class CompModule extends Browsable implements Module {
                     for (ExprHasName n : d.names)
                         cx.put(n.label, n);
                 Expr newBody = cx.check(ff.getBody());
+                //NumberTranslator translator = new NumberTranslator(this);
+                //NumberTranslator.NumberVisitor a = new NumberTranslator.NumberVisitor();
+                //newBody = newBody.accept(a);
+                //newBody = translator.translateOneExpr(newBody);
                 if (ff.isPred)
                     newBody = newBody.resolve_as_formula(warns);
                 else
@@ -1985,15 +1989,20 @@ public final class CompModule extends Browsable implements Module {
             cx.rootfield = d;
             cx.rootsig = s;
             cx.put("this", s.decl.get());
-            Expr bound = cx.check(d.expr).resolve_as_set(warns);
+            Expr bound;
+            if (d.expr.toString().equals("Int")){
+                NumberTranslator translator = new NumberTranslator();
+                bound = cx.check(translator.number8).resolve_as_set(warns);
+            }
+            else
+                bound = cx.check(d.expr).resolve_as_set(warns);
             cx.remove("this");
             String[] names = new String[d.names.size()];
             for (int i = 0; i < names.length; i++)
                 names[i] = d.names.get(i).label;
             Field[] fields = s.addTrickyField(d.span(), d.isPrivate, d.disjoint, d.disjoint2, null, names, bound);
-            for (Field f : fields) {
+            for (Field f : fields)
                 rep.typecheck("Sig " + s + ", Field " + f.label + ": " + f.type() + "\n");
-            }
         }
     }
 
@@ -2159,11 +2168,11 @@ public final class CompModule extends Browsable implements Module {
 
         //Number translation from int to NumberX
 
-        NumberTranslator numTranslator = new NumberTranslator(root);
-        numTranslator.translateAllSigs();
-        numTranslator.translateAllFuncs();
-        numTranslator.translateAllAssertions();
-        CompModule saveInt = null;
+    //    NumberTranslator numTranslator = new NumberTranslator(root);
+    //    numTranslator.translateAllSigs();
+    //    numTranslator.translateAllFuncs();
+    //    numTranslator.translateAllAssertions();
+        /*CompModule saveInt = null;
         boolean found = false;
         for (CompModule x : root.allModules){
             if (x.getModelName().equals("util/integer")) {
@@ -2173,7 +2182,7 @@ public final class CompModule extends Browsable implements Module {
         }
         if (found == true)
             root.allModules.remove(saveInt);
-
+*/
         if (!errors.isEmpty())
             throw errors.pick();
         // Typecheck the run/check commands (which can refer to function bodies

@@ -14,7 +14,7 @@ public class NumberTranslator {
 
     Module world;
 
-    final Sig number8;
+    public final Sig number8;
 
     private static int serial = 0;
     private final String signame = "num";
@@ -33,13 +33,21 @@ public class NumberTranslator {
         this.world = world;
     }
 
+    public NumberTranslator(){
+        //String filename = "/Users/cesar/Documents/Doctorado/alloyarithmetic/org.alloytools.alloy/org.alloytools.alloy.core/src/main/resources/models/util/int8bits.als";
+        String filename = "src/main/resources/models/util/int8bits.als";
+        CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
+        number8 = world.getAllSigs().get(0);
+    }
+
     /**
      *
      * @return new Signature inherits Number8 signature
      */
     public Sig numberSigFactory(){
         Sig.PrimSig ghost = (Sig.PrimSig)int8.getAllSigs().get(0);
-        Sig newSig = new Sig.PrimSig(signame + serial,(Sig.PrimSig) number8,Attr.SUBSIG,Attr.ONE,Attr.BUILTIN);
+        Sig newSig = new Sig.PrimSig(signame + serial,(Sig.PrimSig) number8,Attr.SUBSIG,Attr.ONE);
+
         serial++;
         return newSig;
     }
@@ -59,25 +67,29 @@ public class NumberTranslator {
         List<Expr> exprs = new LinkedList<Expr>();
         ExprList finalExprList;
         Sig result = numberSigFactory();
+        //ExprUnary prueba = (ExprUnary)ExprUnary.Op.NOOP.make(number8.pos, ExprVar.make(number8.pos, "this"));
         for (int i = 0; i < reverseNumInBit.length(); i++) {
-            leftField = number8.getFields().get(i);
-            leftExpr = result.join(leftField).resolve(number8.type(), new JoinableList<ErrorWarning>());
+            //leftField = result.getFieldDecls().get(i).expr;
+            leftExpr = result.join((((Sig.PrimSig)result).parent.getFields().get(i)));
+            //leftExpr = result.join(number8.getFields().get(i)).resolve(number8.type(), new JoinableList<ErrorWarning>());
             rightExpr = (reverseNumInBit.charAt(i) == '1') ?  boolTrue : boolFalse;
-            rightExpr = rightExpr.resolve(number8.type(), new JoinableList<ErrorWarning>());
-            e = result.equal(rightExpr);
-            assert(e.errors.size() == 0);
+            //rightExpr = rightExpr.resolve(number8.type(), new JoinableList<ErrorWarning>());
+            e = leftExpr.equal(rightExpr);
+            //assert(e.errors.size() == 0);
             exprs.add(e);
         }
         //makes the final expr list
-        finalExprList = ExprList.make(number8.pos, number8.closingBracket, ExprList.Op.AND, exprs);
-        result.addFact(finalExprList);
+        finalExprList = (ExprList)ExprList.make(number8.pos, number8.closingBracket, ExprList.Op.AND, exprs).resolve_as_formula(new JoinableList<ErrorWarning>());
+        result.addFact(finalExprList.resolve_as_formula(new JoinableList<ErrorWarning>()));
         LinkedList<ExprVar> parents = new LinkedList<ExprVar>();
         parents.add(ExprVar.make(number8.pos, number8.label));
 
         LinkedList<Decl> newDecls = new LinkedList<Decl>();
         for (Decl d: result.getFieldDecls())
                newDecls.add(d);
-        ((CompModule)world).addSig(result.label, ExprVar.make(number8.pos, number8.label), parents, newDecls, finalExprList, Attr.SUBSET);
+        ((CompModule)world).addSig(result.label, ExprVar.make(number8.pos, number8.label), parents, newDecls, finalExprList, Attr.ONE);
+        System.out.println("al traducir : sub sig: " + result.isSubsig + "sub set : " + result.isSubset);
+        System.out.println("fact : " + finalExprList.toString());
         return result;
     }
 
@@ -157,6 +169,11 @@ public class NumberTranslator {
         for (Pair<String, Expr> fact : world.getAllFacts()){
             fact.b = fact.b.accept(visitor);
         }
+    }
+
+    public Expr translateOneExpr(Expr e){
+        NumberVisitor visitor = new NumberVisitor();
+        return e.accept(visitor);
     }
 
     public class NumberVisitor extends VisitReturn<Expr>{
