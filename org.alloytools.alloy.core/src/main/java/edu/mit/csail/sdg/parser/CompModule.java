@@ -1988,7 +1988,7 @@ public final class CompModule extends Browsable implements Module {
             Expr bound;
             if (d.expr.toString().equals("Int")){
                 NumberTranslator translator = new NumberTranslator(m);
-                bound = translator.number8;
+                bound = cx.check(translator.number8).resolve_as_set(warns);
             }
             else
                 bound = cx.check(d.expr).resolve_as_set(warns);
