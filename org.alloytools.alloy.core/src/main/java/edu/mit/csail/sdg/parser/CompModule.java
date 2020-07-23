@@ -1652,10 +1652,6 @@ public final class CompModule extends Browsable implements Module {
                     for (ExprHasName n : d.names)
                         cx.put(n.label, n);
                 Expr newBody = cx.check(ff.getBody());
-                //NumberTranslator translator = new NumberTranslator(this);
-                //NumberTranslator.NumberVisitor a = new NumberTranslator.NumberVisitor();
-                //newBody = newBody.accept(a);
-                //newBody = translator.translateOneExpr(newBody);
                 if (ff.isPred)
                     newBody = newBody.resolve_as_formula(warns);
                 else
@@ -1991,8 +1987,8 @@ public final class CompModule extends Browsable implements Module {
             cx.put("this", s.decl.get());
             Expr bound;
             if (d.expr.toString().equals("Int")){
-                NumberTranslator translator = new NumberTranslator();
-                bound = cx.check(translator.number8).resolve_as_set(warns);
+                NumberTranslator translator = new NumberTranslator(m);
+                bound = translator.number8;
             }
             else
                 bound = cx.check(d.expr).resolve_as_set(warns);

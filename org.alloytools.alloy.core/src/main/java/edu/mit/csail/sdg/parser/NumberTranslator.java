@@ -33,12 +33,12 @@ public class NumberTranslator {
         this.world = world;
     }
 
-    public NumberTranslator(){
-        //String filename = "/Users/cesar/Documents/Doctorado/alloyarithmetic/org.alloytools.alloy/org.alloytools.alloy.core/src/main/resources/models/util/int8bits.als";
-        String filename = "src/main/resources/models/util/int8bits.als";
+    /*public NumberTranslator(){
+        String filename = "/Users/cesar/Documents/Doctorado/alloyarithmetic/org.alloytools.alloy/org.alloytools.alloy.core/src/main/resources/models/util/int8bits.als";
+        //String filename = "src/main/resources/models/util/int8bits.als";
         CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
         number8 = world.getAllSigs().get(0);
-    }
+    }*/
 
     /**
      *
