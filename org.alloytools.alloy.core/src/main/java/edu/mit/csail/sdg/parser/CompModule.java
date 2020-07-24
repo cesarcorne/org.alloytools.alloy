@@ -1607,7 +1607,13 @@ public final class CompModule extends Browsable implements Module {
                 boolean err = false;
                 for (Decl d : f.decls) {
                     TempList<ExprVar> tmpvars = new TempList<ExprVar>();
-                    Expr val = cx.check(d.expr).resolve_as_set(warns);
+                    Expr val;
+                    if (d.expr.toString().equals("Int") && !this.moduleName.equals("util/integer")) {
+                        NumberTranslator translator = new NumberTranslator(this.world);
+                        val = cx.check(translator.number8).resolve_as_set(warns);
+                    } else
+                        val = cx.check(d.expr).resolve_as_set(warns);
+                    //Expr val = cx.check(d.expr).resolve_as_set(warns);
                     if (!val.errors.isEmpty()) {
                         err = true;
                         errors = errors.make(val.errors);
