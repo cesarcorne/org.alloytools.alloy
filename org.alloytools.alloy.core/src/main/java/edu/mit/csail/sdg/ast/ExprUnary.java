@@ -46,7 +46,7 @@ public final class ExprUnary extends Expr {
     public final Op   op;
 
     /** The subexpression. */
-    public final Expr sub;
+    public  Expr sub;
 
     /** Caches the span() result. */
     private Pos       span = null;

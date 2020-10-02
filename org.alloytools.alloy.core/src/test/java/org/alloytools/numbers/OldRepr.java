@@ -1,6 +1,7 @@
 package org.alloytools.numbers;
 
 import edu.mit.csail.sdg.alloy4.A4Reporter;
+import edu.mit.csail.sdg.ast.Func;
 import edu.mit.csail.sdg.ast.Sig;
 import edu.mit.csail.sdg.parser.CompModule;
 import edu.mit.csail.sdg.parser.CompUtil;
@@ -17,5 +18,14 @@ public class OldRepr {
         for (Sig s : world.getAllSigs())
             for (Sig.Field f : s.getFields())
                 Assert.assertEquals("{this/A->this/Number8}", f.type().toString());
+    }
+
+    @Test
+    public void checkParams(){
+        String filename = "src/test/resources/oldInts.als";
+        CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
+        for (Func f : world.getAllFunc()){
+            System.out.println(f.decls);
+        }
     }
 }

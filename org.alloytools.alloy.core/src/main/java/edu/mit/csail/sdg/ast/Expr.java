@@ -59,7 +59,7 @@ public abstract class Expr extends Browsable {
     /**
      * The type for this node; EMPTY if it is not well-typed.
      */
-    final Type       type;
+    public Type       type;
 
     /**
      * Return the type for this node; EMPTY if it is not well-typed.

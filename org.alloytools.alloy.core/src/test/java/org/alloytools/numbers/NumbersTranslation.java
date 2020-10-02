@@ -99,7 +99,6 @@ public class NumbersTranslation {
 
         @Override
         public Integer visit(ExprUnary x) throws Err {
-            //System.out.println("In visitor ExprUnary : " + x);
             //return numberSigFactory().oneOf();
             //if (x.type().is_int()) {
             //    if (x.op.equals(ExprUnary.Op.CAST2SIGINT)) {
@@ -113,7 +112,6 @@ public class NumbersTranslation {
 
         @Override
         public Integer visit(ExprVar x) throws Err {
-            //System.out.println("In visitor ExprVar: " + x);
             //return numberSigFactory().oneOf();
             if (x.type().is_int())
                 return 1;
@@ -210,7 +208,6 @@ public class NumbersTranslation {
 
         @Override
         public Integer visit(ExprUnary x) throws Err {
-            //System.out.println("In visitor ExprUnary : " + x);
             //return numberSigFactory().oneOf();
             //if (x.type().is_int()) {
             //    if (x.op.equals(ExprUnary.Op.CAST2SIGINT)) {
@@ -224,7 +221,6 @@ public class NumbersTranslation {
 
         @Override
         public Integer visit(ExprVar x) throws Err {
-            //System.out.println("In visitor ExprVar: " + x);
             //return numberSigFactory().oneOf();
             if (x.type().toString().equals("{int8bits/Number8}"))
                 return 1;
@@ -247,20 +243,18 @@ public class NumbersTranslation {
             else return 0;
         }
     }
-
+/*
     @Test
     public void checkTranslation(){
         NumberTranslator translator = new NumberTranslator(world);
         ExprList result = translator.numberToFact(num);
 
         Assert.assertEquals(result.args.size(),8);
-        System.out.println(result.toString());
-        System.out.println("Test 1");
         for (Func f : world.getAllFunc())
             translator.replacePred(f);
     }
-
-
+*/
+/*
     @Test
     public void checkNewSig(){
         Module moduleInt = null;
@@ -269,20 +263,20 @@ public class NumbersTranslation {
                 moduleInt = m;
         }
         NumberTranslator translator = new NumberTranslator(world);
-        ExprList result = translator.numberToFact(22);
-        Sig sig1 = translator.numberSigFactory();
-        sig1.addFact(result);
-        System.out.println("Test 2");
+        //ExprList result = translator.numberToFact(22);
+        //Sig sig1 = translator.numberSigFactory();
+        //sig1.addFact(result);
+        Sig sig1 = translator.numberToFact(22);
 
-        Assert.assertEquals(result, sig1.getFacts().get(0));
-        Assert.assertEquals(sig1.getFacts(), translator.newNumberSig(result).getFacts());
-        Sig record = translator.newNumberSig(result);
+        //Assert.assertEquals(result, sig1.getFacts().get(0));
+        //Assert.assertEquals(sig1.getFacts(), translator.newNumberSig(result).getFacts());
+        //Sig record = translator.newNumberSig(result);
     }
-
+*/
     /**
      * IntegrationTest1 reaches coverage of ExprList, ExprCall, ExprConst, ExprUnary, ExprVar and Sig
      */
-    @Test
+  /*  @Test
     public void IntegrationTest1(){
 
         String filename = "src/test/resources/ExprBin-test.als";
@@ -290,7 +284,6 @@ public class NumbersTranslation {
         Func pred = world.getAllFunc().get(0);
         CountInt countViz = new CountInt();
         Integer result = pred.getBody().accept(countViz);
-        System.out.println("Test 3");
 
         NumberTranslator translator = new NumberTranslator(world);
         translator.replacePred(pred);
@@ -305,13 +298,8 @@ public class NumbersTranslation {
     public void IntegrationTest2(){
         String filename = "src/test/resources/sig-test.als";
         CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
-        System.out.println("Test 4");
-
-        System.out.println(world.getAllSigs().get(0).getFields().get(0).type());
         NumberTranslator translator = new NumberTranslator(world);
-        System.out.println("prueba translator: " + translator.translateSigs(world.getAllSigs().get(0)).getFields().get(0).type());
-        world.replaceSig(world.getAllSigs().get(0),translator.translateSigs(world.getAllSigs().get(0)));
-        System.out.println("a ver-> : " + world.getAllSigs().get(0).getFields().get(0).type());
+        world.replaceSig(world.getAllSigs().get(0),translator.translateOneSig(world.getAllSigs().get(0)));
 
     }
 
@@ -320,13 +308,8 @@ public class NumbersTranslation {
         String filename = "src/test/resources/Join-test.als";
         CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
 
-        System.out.println(world.getAllSigs().get(0).getFields().get(0).type());
         NumberTranslator translator = new NumberTranslator(world);
-        System.out.println("prueba translator: " + translator.translateSigs(world.getAllSigs().get(0)).getFields().get(0).type());
-        world.replaceSig(world.getAllSigs().get(0),translator.translateSigs(world.getAllSigs().get(0)));
-        System.out.println("a ver-> : " + world.getAllSigs().get(0).getFields().get(0).type());
-
-        System.out.println("Test 5");
+        world.replaceSig(world.getAllSigs().get(0),translator.translateOneSig(world.getAllSigs().get(0)));
 
         Func pred = world.getAllFunc().get(0);
         CountInt countViz = new CountInt();
@@ -339,8 +322,23 @@ public class NumbersTranslation {
         Integer newResult = pred.getBody().accept(countNum8Viz);
 
         Assert.assertEquals(result, newResult);
+
     }
 
-    
+    @Test
+    public void checkExtends(){
+        String filename = "src/test/resources/checkExtends.als";
+        CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
+
+        Sig a = world.getAllSigs().get(0);
+    }
+*/
+    @Test
+    public void checkOldInts(){
+        String filename = "src/test/resources/oldInts.als";
+        CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
+
+    }
+
 
 }

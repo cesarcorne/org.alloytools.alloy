@@ -19,6 +19,7 @@ import static edu.mit.csail.sdg.ast.Type.EMPTY;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import edu.mit.csail.sdg.alloy4.ConstList;
@@ -27,6 +28,7 @@ import edu.mit.csail.sdg.alloy4.Err;
 import edu.mit.csail.sdg.alloy4.ErrorType;
 import edu.mit.csail.sdg.alloy4.ErrorWarning;
 import edu.mit.csail.sdg.alloy4.Pos;
+import edu.mit.csail.sdg.parser.NumberTranslator;
 
 /**
  * Immutable; represents an unresolved node that has several possibilities.
@@ -288,5 +290,26 @@ public final class ExprChoice extends Expr {
     @Override
     public List< ? extends Browsable> getSubnodes() {
         return new ArrayList<Browsable>(0);
+    }
+
+    public Expr resolveNumChoice(NumberTranslator translator){
+        Expr chosen = null;
+        for (Expr e : choices){
+            if (!e.toString().startsWith("integer/")){
+                chosen = e;
+                break;
+            }
+        }
+        if (chosen instanceof ExprBadCall){
+            List<Expr> newArgs = new LinkedList<Expr>();
+            for (Expr e : ((ExprBadCall)chosen).args){
+                if (e.type().is_int())
+                    newArgs.add(translator.translateOneExpr(e));
+                else
+                    newArgs.add(e);
+            }
+            return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
+        }
+        return null;
     }
 }
