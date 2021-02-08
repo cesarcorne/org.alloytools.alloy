@@ -2505,9 +2505,6 @@ public final class CompModule extends Browsable implements Module {
 
     }
 
-    public void addSignature(Sig newSig){
 
-        this.sigs.put(newSig.label, newSig);
-    }
 
 }

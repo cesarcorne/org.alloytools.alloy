@@ -3,8 +3,8 @@ package edu.mit.csail.sdg.parser;
 import edu.mit.csail.sdg.alloy4.*;
 import edu.mit.csail.sdg.ast.*;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.lang.reflect.Field;
+import java.util.*;
 
 public class NumberTranslator {
 
@@ -33,20 +33,13 @@ public class NumberTranslator {
         this.world = world;
     }
 
-    /*public NumberTranslator(){
-        String filename = "/Users/cesar/Documents/Doctorado/alloyarithmetic/org.alloytools.alloy/org.alloytools.alloy.core/src/main/resources/models/util/int8bits.als";
-        //String filename = "src/main/resources/models/util/int8bits.als";
-        CompModule world = CompUtil.parseEverything_fromFile(A4Reporter.NOP, null, filename);
-        number8 = world.getAllSigs().get(0);
-    }*/
-
     /**
      *
      * @return new Signature inherits Number8 signature
      */
     public Sig numberSigFactory(){
         Sig.PrimSig ghost = (Sig.PrimSig)int8.getAllSigs().get(0);
-        Sig newSig = new Sig.PrimSig(signame + serial,(Sig.PrimSig) number8,Attr.SUBSIG,Attr.ONE);
+        Sig newSig = new Sig.PrimSig(signame + serial,(Sig.PrimSig) number8,Attr.ONE);
 
         serial++;
         return newSig;
@@ -70,7 +63,8 @@ public class NumberTranslator {
         //ExprUnary prueba = (ExprUnary)ExprUnary.Op.NOOP.make(number8.pos, ExprVar.make(number8.pos, "this"));
         for (int i = 0; i < reverseNumInBit.length(); i++) {
             //leftField = result.getFieldDecls().get(i).expr;
-            leftExpr = result.join((((Sig.PrimSig)result).parent.getFields().get(i)));
+            //leftExpr = result.join((((Sig.PrimSig)result).parent.getFields().get(i)));
+            leftExpr = result.join(((Sig.PrimSig)result).parent.getFields().get(i));
             //leftExpr = result.join(number8.getFields().get(i)).resolve(number8.type(), new JoinableList<ErrorWarning>());
             rightExpr = (reverseNumInBit.charAt(i) == '1') ?  boolTrue : boolFalse;
             //rightExpr = rightExpr.resolve(number8.type(), new JoinableList<ErrorWarning>());
@@ -87,7 +81,8 @@ public class NumberTranslator {
         LinkedList<Decl> newDecls = new LinkedList<Decl>();
         for (Decl d: result.getFieldDecls())
                newDecls.add(d);
-        ((CompModule)world).addSig(result.label, ExprVar.make(number8.pos, number8.label), parents, newDecls, finalExprList, Attr.ONE);
+        //((CompModule)world).addSig(result.label, ExprVar.make(number8.pos, number8.label), parents, newDecls, finalExprList, Attr.ONE);
+        addSigToModule(result);
         return result;
     }
 
@@ -284,20 +279,133 @@ public class NumberTranslator {
         }
     }*/
 
+    public void addSigToModule(Sig s) throws Err {
+        addSigToModule_sigsField(s);
+        addSigToModule_old2fieldsField(s);
+        addSigToModule_sig2moduleField(s);
+        addSigToModule_old2appendedfactsField(s);
+    }
+
+    private boolean setAccessibleStatus(Field f, boolean newValue) {
+        boolean oldValue = f.isAccessible();
+        f.setAccessible(newValue);
+        return oldValue;
+    }
+
+    private void addSigToModule_sigsField(Sig sig) throws Err{
+        Field sigsField = getField(CompModule.class, "sigs");
+        try{
+            boolean oldAccessibleStatus = setAccessibleStatus(sigsField, true);
+            Map<String, Sig> sigs = (Map<String, Sig>) sigsField.get(world);
+            if (sigs.containsKey(sig.toString())) {
+                setAccessibleStatus(sigsField, oldAccessibleStatus);
+                throw new IllegalAccessException("Sig to add (" + sig.toString() + ") already exists in module");
+            }
+            sigs.put(sig.toString(), sig);
+            setAccessibleStatus(sigsField, oldAccessibleStatus);
+        } catch (Exception e) {
+            throw new ErrorFatal("An error occurred while trying to access sigs field");
+        }
+    }
+
+    private static Field getField(Class< ? > from, String field) {
+        for (Field f : from.getDeclaredFields()) {
+            if (f.getName().compareTo(field) == 0)
+                return f;
+        }
+        return null;
+    }
+
+    private void addSigToModule_old2fieldsField(Sig sig) throws Err {
+        Field old2fieldsField = getField(CompModule.class, "old2fields");
+        try {
+            boolean oldAccessibleStatus = setAccessibleStatus(old2fieldsField, true);
+            LinkedHashMap<Sig, List<Decl>> old2fields = (LinkedHashMap<Sig, List<Decl>>) old2fieldsField.get(world);
+            if (old2fields.containsKey(sig)) {
+                setAccessibleStatus(old2fieldsField, oldAccessibleStatus);
+                throw new IllegalAccessException("Sig to add (" + sig.label + ") already exists in module");
+            }
+            old2fields.put(sig, sig.getFieldDecls().makeCopy());
+            setAccessibleStatus(old2fieldsField, oldAccessibleStatus);
+        } catch (IllegalAccessException e) {
+            throw new ErrorFatal("An error occurred while trying to access old2fields field");
+        }
+    }
+
+    private void addSigToModule_sig2moduleField(Sig sig) throws Err {
+        Field sig2moduleField = getField(CompModule.class, "sig2module");
+        try {
+            boolean oldAccessibleStatus = setAccessibleStatus(sig2moduleField, true);
+            HashMap<Sig, CompModule> sig2module = (HashMap<Sig, CompModule>) sig2moduleField.get(world);
+            if (sig2module.containsKey(sig)) {
+                setAccessibleStatus(sig2moduleField, oldAccessibleStatus);
+                throw new IllegalAccessException("Sig to add (" + sig.label + ") already exists in module");
+            }
+            sig2module.put(sig, (CompModule) world);
+            setAccessibleStatus(sig2moduleField, oldAccessibleStatus);
+        } catch (IllegalAccessException e) {
+            throw new ErrorFatal("An error occurred while trying to access sig2module field");
+        }
+    }
+
+    private void addSigToModule_old2appendedfactsField(Sig sig) throws Err {
+        Field old2appendedfactsField = getField(CompModule.class, "old2appendedfacts");
+        try {
+            boolean oldAccessibleStatus = setAccessibleStatus(old2appendedfactsField, true);
+            LinkedHashMap<Sig,Expr> old2appendedfacts = (LinkedHashMap<Sig,Expr>) old2appendedfactsField.get(world);
+            if (old2appendedfacts.containsKey(sig)) {
+                setAccessibleStatus(old2appendedfactsField, oldAccessibleStatus);
+                throw new IllegalAccessException("Sig to add (" + sig.label + ") already exists in module");
+            }
+            old2appendedfacts.put(sig, ExprConstant.TRUE);
+            setAccessibleStatus(old2appendedfactsField, oldAccessibleStatus);
+        } catch (IllegalAccessException e) {
+            throw new ErrorFatal("An error occurred while trying to access old2appendedfacts field");
+        }
+    }
+
     public class NumberVisitor extends VisitReturn<Expr>{
+
 
         public NumberVisitor(){}
 
         @Override
         public Expr visit(ExprBinary x) throws Err {
-            return x.op.make(x.pos,x.closingBracket,x.left.accept(this),x.right.accept(this));
+            Expr newArg = x.right;
+            if (x.right instanceof ExprChoice)
+                newArg = ((ExprChoice) x.right).selectInChoice();
+            if (newArg instanceof ExprBadCall){
+                LinkedList<Expr> tinyNewArgs = new LinkedList<Expr>();
+                for (Expr e : ((ExprBadCall)newArg).args){
+                    if (e.type().is_int())
+                        tinyNewArgs.add(translateOneExpr(e));
+                    else
+                        tinyNewArgs.add(e);
+                }
+                newArg = ExprCall.make(newArg.pos, newArg.pos, ((ExprBadCall)newArg).fun, ConstList.make(tinyNewArgs), ((ExprBadCall)newArg).extraWeight);
+            }
+            return x.op.make(x.pos,x.closingBracket,x.left.accept(this),newArg.accept(this));
         }
 
         @Override
         public Expr visit(ExprList x) throws Err {
             LinkedList<Expr> newArgs = new LinkedList<Expr>();
-            for (Expr newArg : x.args)
+            for (Expr newArg : x.args) {
+                if (newArg instanceof ExprChoice)
+                    newArg = ((ExprChoice) newArg).selectInChoice();
+                if (newArg instanceof ExprBadCall){
+                    LinkedList<Expr> tinyNewArgs = new LinkedList<Expr>();
+                    for (Expr e : ((ExprBadCall)newArg).args){
+                        if (e.type().is_int())
+                            tinyNewArgs.add(translateOneExpr(e));
+                        else
+                            tinyNewArgs.add(e);
+                    }
+                    newArg = ExprCall.make(newArg.pos, newArg.pos, ((ExprBadCall)newArg).fun, ConstList.make(tinyNewArgs), ((ExprBadCall)newArg).extraWeight);
+                }
                 newArgs.add(newArg.accept(this));
+            }
+
             ExprList nList = ExprList.make(x.pos,x.closingBracket,x.op,ConstList.make(newArgs));
             return nList;
         }
@@ -314,6 +422,8 @@ public class NumberTranslator {
             return ExprCall.make(x.pos, x.pos, x.fun, ConstList.make(newArgs), x.extraWeight);
         }
 
+
+
         @Override
         public Expr visit(ExprConstant x) throws Err {
             Sig newNum;
@@ -326,15 +436,19 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprITE x) throws Err {
-            return ExprITE.make(x.pos, x.cond.accept(this), x.left.accept(this), x.right.accept(this));
+            Expr cond = (x.cond instanceof ExprChoice) ? ((ExprChoice) x.cond).resolveCallChoice(makeAViz()) : x.cond;
+            Expr left = (x.cond instanceof ExprChoice) ? ((ExprChoice) x.left).resolveCallChoice(makeAViz()) : x.left;
+            Expr right = (x.cond instanceof ExprChoice) ? ((ExprChoice) x.right).resolveCallChoice(makeAViz()) : x.cond;
+            return ExprITE.make(x.pos, cond.accept(this), left.accept(this), right.accept(this));
         }
 
         @Override
         public Expr visit(ExprLet x) throws Err {
-            return  ExprLet.make(x.pos, (ExprVar) x.var.accept(this), x.expr.accept(this), x.sub.accept(this));
-        }
+            Expr sub = (x.sub instanceof ExprChoice) ? ((ExprChoice) x.sub).resolveCallChoice(makeAViz()) : x.sub;
+            return ExprLet.make(x.pos, (ExprVar) x.var.accept(this), x.expr.accept(this), sub.accept(this));
 
-        @Override
+        }
+            @Override
         public Expr visit(ExprQt x) throws Err {
             List<Decl> newDecl = new LinkedList<Decl>();
             for (Decl d : x.decls){
@@ -345,6 +459,7 @@ public class NumberTranslator {
             if (x.sub instanceof ExprChoice){
                 for (Expr e : ((ExprChoice) x.sub).choices){
                     List<Expr> newArgs = new LinkedList<Expr>();
+
                     if (!e.toString().startsWith("integer/") && e instanceof ExprBadCall){
                         for (Expr arg : ((ExprBadCall) e).args)
                             if (arg.type().is_int())
@@ -365,6 +480,7 @@ public class NumberTranslator {
         public Expr visit(ExprUnary x) throws Err {
             if (x.sub instanceof ExprConstant && x.sub.type.is_int()){
                 Sig s = numberToFact(((ExprConstant)x.sub).num);
+                //addSigToModule(s);
                 x = (ExprUnary) ExprUnary.Op.NOOP.make(x.pos, s);
                 return x.resolve_as_set(new LinkedList<ErrorWarning>());
             }
@@ -395,6 +511,10 @@ public class NumberTranslator {
         public Expr visit(Sig.Field x) throws Err {
             return x;
         }
+    }
+
+    public NumberVisitor makeAViz(){
+        return new NumberVisitor();
     }
 
     public class NumberCheck extends VisitReturn<Boolean>{
