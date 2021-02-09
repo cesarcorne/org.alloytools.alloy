@@ -1736,7 +1736,10 @@ public final class CompModule extends Browsable implements Module {
         Context cx = new Context(this, warns);
         for (Map.Entry<String,Expr> e : asserts.entrySet()) {
             Expr expr = e.getValue();
-            expr = cx.check(expr).resolve_as_formula(warns);
+            expr = cx.check(expr);
+            NumberTranslator translator = new NumberTranslator(this.world);
+            expr = translator.translateOneExpr(expr);
+            expr.resolve_as_formula(warns);
             if (expr.errors.isEmpty()) {
                 e.setValue(expr);
                 rep.typecheck("Assertion " + e.getKey() + ": " + expr.type() + "\n");
@@ -1778,7 +1781,9 @@ public final class CompModule extends Browsable implements Module {
             String name = facts.get(i).a;
             Expr expr = facts.get(i).b;
             Expr checked = cx.check(expr);
-            expr = checked.resolve_as_formula(warns);
+            NumberTranslator translator = new NumberTranslator(this.world);
+            expr = translator.translateOneExpr(checked);
+            expr = expr.resolve_as_formula(warns);
             if (expr.errors.isEmpty()) {
                 facts.set(i, new Pair<String,Expr>(name, expr));
                 rep.typecheck("Fact " + name + ": " + expr.type() + "\n");

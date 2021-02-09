@@ -310,14 +310,26 @@ public final class ExprChoice extends Expr {
             }
             return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
         }
-        return chosen;
+        return this;
     }
 
-    public Expr selectInChoice(){
-        Expr chosen = null;
-        for (Expr e : choices){
-            if (!e.toString().startsWith("integer/")){
-                return e;
+    public Expr selectInChoice(NumberTranslator.NumberVisitor viz){
+        //Expr chosen = null;
+        for (Expr chosen : choices){
+            if (!chosen.toString().startsWith("integer/")){
+                if (chosen instanceof ExprBadCall){
+                    List<Expr> newArgs = new LinkedList<Expr>();
+                    for (Expr e : ((ExprBadCall)chosen).args){
+                        if (e.type().is_int())
+                            newArgs.add(e.accept(viz));
+                        else
+                            newArgs.add(e);
+                    }
+                    return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
+                }
+
+                else
+                    return chosen;
             }
         }
         /*if (chosen instanceof ExprBadCall){
@@ -330,7 +342,7 @@ public final class ExprChoice extends Expr {
             }
             return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
         }*/
-        return chosen;
+        return this;
     }
 
     public Expr resolveCallChoice(NumberTranslator.NumberVisitor viz){
