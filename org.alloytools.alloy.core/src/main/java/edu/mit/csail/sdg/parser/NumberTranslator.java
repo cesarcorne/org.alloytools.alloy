@@ -8,13 +8,22 @@ import java.util.*;
 
 public class NumberTranslator {
 
-    int bitRepresentation = 8;
+    int bitRepresentation;
 
     Module int8;
+
+    Module int16;
+
+    Module int32;
 
     Module world;
 
     public final Sig number8;
+
+    public final Sig number16;
+
+    public final Sig number32;
+
 
     private static int serial = 0;
     private final String signame = "num";
@@ -25,12 +34,42 @@ public class NumberTranslator {
      * @param world main module
      */
     public NumberTranslator(Module world){
+        this.bitRepresentation = 16;
+        boolean uses8 = false, uses16 = false, uses32 = false;
         for (Module m : world.getAllReachableModules()){
-            if (m.getModelName().equals("util/int8bits"))
+            if (m.getModelName().equals("util/int8bits")) {
                 int8 = m;
+                uses8 = true;
+            }
+            if (m.getModelName().equals("util/int16bits")) {
+                int16 = m;
+                uses16 = true;
+            }
+            if (m.getModelName().equals("util/int32bits")) {
+                int32 = m;
+                uses32 = true;
+            }
         }
-        number8 = int8.getAllSigs().get(0);
+        number8 = (uses8) ? int8.getAllSigs().get(0) : null;
+        number16 = (uses16) ? int16.getAllSigs().get(0) : null;
+        number32 = (uses32) ? int32.getAllSigs().get(0) : null;
         this.world = world;
+    }
+
+    public Sig actualRep(){
+        switch (bitRepresentation){
+            case 16 : return number16;
+            case 32 : return number32;
+            default: return number8;
+        }
+    }
+
+    public Module actualModuleRep(){
+        switch (bitRepresentation){
+            case 16 : return int16;
+            case 32 : return int32;
+            default: return int8;
+        }
     }
 
     /**
@@ -38,8 +77,8 @@ public class NumberTranslator {
      * @return new Signature inherits Number8 signature
      */
     public Sig numberSigFactory(){
-        Sig.PrimSig ghost = (Sig.PrimSig)int8.getAllSigs().get(0);
-        Sig newSig = new Sig.PrimSig(signame + serial,(Sig.PrimSig) number8,Attr.ONE);
+        Sig.PrimSig ghost = (Sig.PrimSig)actualModuleRep().getAllSigs().get(0);
+        Sig newSig = new Sig.PrimSig(signame + serial,(Sig.PrimSig) actualRep(),Attr.ONE);
 
         serial++;
         return newSig;
@@ -52,10 +91,10 @@ public class NumberTranslator {
      */
     public Sig numberToFact(int number){
         StringBuilder reverseNumInBit = new StringBuilder(Integer.toBinaryString(number)).reverse();
-        assert(reverseNumInBit.length() <= 8);
-        reverseNumInBit.setLength(8);
-        Sig boolTrue = int8.getAllReachableModules().get(2).getAllSigs().get(1);
-        Sig boolFalse = int8.getAllReachableModules().get(2).getAllSigs().get(2);
+        assert(reverseNumInBit.length() <= bitRepresentation);
+        reverseNumInBit.setLength(bitRepresentation);
+        Sig boolTrue = actualModuleRep().getAllReachableModules().get(2).getAllSigs().get(1);
+        Sig boolFalse = actualModuleRep().getAllReachableModules().get(2).getAllSigs().get(2);
         Expr e, leftField, rightExpr, leftExpr;
         List<Expr> exprs = new LinkedList<Expr>();
         ExprList finalExprList;
@@ -73,10 +112,10 @@ public class NumberTranslator {
             exprs.add(e);
         }
         //makes the final expr list
-        finalExprList = (ExprList)ExprList.make(number8.pos, number8.closingBracket, ExprList.Op.AND, exprs).resolve_as_formula(new JoinableList<ErrorWarning>());
+        finalExprList = (ExprList)ExprList.make(actualRep().pos, actualRep().closingBracket, ExprList.Op.AND, exprs).resolve_as_formula(new JoinableList<ErrorWarning>());
         result.addFact(finalExprList.resolve_as_formula(new JoinableList<ErrorWarning>()));
         LinkedList<ExprVar> parents = new LinkedList<ExprVar>();
-        parents.add(ExprVar.make(number8.pos, number8.label));
+        parents.add(ExprVar.make(actualRep().pos, actualRep().label));
 
         LinkedList<Decl> newDecls = new LinkedList<Decl>();
         for (Decl d: result.getFieldDecls())
@@ -375,7 +414,7 @@ public class NumberTranslator {
                 return x.resolve_as_set(new LinkedList<ErrorWarning>());
             }
             if (x.type().is_int()) {
-                x = (ExprUnary) ExprUnary.Op.NOOP.make(x.pos, number8);
+                x = (ExprUnary) ExprUnary.Op.NOOP.make(x.pos, actualRep());
             }
             return x.sub.accept(this);
         }
@@ -383,7 +422,7 @@ public class NumberTranslator {
         @Override
         public Expr visit(ExprVar x) throws Err {
             if (x.type().is_int())
-                return ExprVar.make(x.pos,x.label,number8.type());
+                return ExprVar.make(x.pos,x.label,actualRep().type());
             else
                 return x;
         }

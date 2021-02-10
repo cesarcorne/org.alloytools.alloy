@@ -1610,7 +1610,7 @@ public final class CompModule extends Browsable implements Module {
                     Expr val;
                     if (d.expr.toString().equals("Int") && !this.moduleName.equals("util/integer")) {
                         NumberTranslator translator = new NumberTranslator(this.world);
-                        val = cx.check(translator.number8).resolve_as_set(warns);
+                        val = cx.check(translator.actualRep()).resolve_as_set(warns);
                     } else
                         val = cx.check(d.expr).resolve_as_set(warns);
                     //Expr val = cx.check(d.expr).resolve_as_set(warns);
@@ -2013,7 +2013,7 @@ public final class CompModule extends Browsable implements Module {
             Expr bound;
             if (d.expr.toString().equals("Int")){
                 NumberTranslator translator = new NumberTranslator(m);
-                bound = cx.check(translator.number8).resolve_as_set(warns);
+                bound = cx.check(translator.actualRep()).resolve_as_set(warns);
             }
             else
                 bound = cx.check(d.expr).resolve_as_set(warns);
@@ -2187,23 +2187,6 @@ public final class CompModule extends Browsable implements Module {
             }
         }
 
-        //Number translation from int to NumberX
-
-    //    NumberTranslator numTranslator = new NumberTranslator(root);
-    //    numTranslator.translateAllSigs();
-    //    numTranslator.translateAllFuncs();
-    //    numTranslator.translateAllAssertions();
-        /*CompModule saveInt = null;
-        boolean found = false;
-        for (CompModule x : root.allModules){
-            if (x.getModelName().equals("util/integer")) {
-                saveInt = x;
-                found = true;
-            }
-        }
-        if (found == true)
-            root.allModules.remove(saveInt);
-*/
         if (!errors.isEmpty())
             throw errors.pick();
         // Typecheck the run/check commands (which can refer to function bodies
