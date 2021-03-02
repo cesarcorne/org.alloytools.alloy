@@ -314,7 +314,6 @@ public final class ExprChoice extends Expr {
     }
 
     public Expr selectInChoice(NumberTranslator.NumberVisitor viz){
-        //Expr chosen = null;
         for (Expr chosen : choices){
             if (!chosen.toString().startsWith("integer/")){
                 if (chosen instanceof ExprBadCall){
@@ -356,14 +355,14 @@ public final class ExprChoice extends Expr {
     }
 
     public Expr selectInChoiceLETInstance(NumberTranslator.NumberVisitor viz, ExprVar var){
-        for (Expr chosen : choices){
-            if (!chosen.toString().startsWith("integer/")){
-                if (chosen instanceof ExprBadCall){
+        for (Expr chosen : choices) {
+            if (!chosen.toString().startsWith("integer/")) {
+                if (chosen instanceof ExprBadCall) {
                     List<Expr> newArgs = new LinkedList<Expr>();
-                    for (Expr e : ((ExprBadCall)chosen).args){
-                        if (e instanceof  ExprUnary){
+                    for (Expr e : ((ExprBadCall) chosen).args) {
+                        if (e instanceof ExprUnary) {
                             Expr eAsVar = getExprVar((ExprUnary) e);
-                            if (eAsVar instanceof ExprVar && ((ExprVar) eAsVar).label.equals(var.label)){
+                            if (eAsVar instanceof ExprVar && ((ExprVar) eAsVar).label.equals(var.label)) {
                                 newArgs.add(var);
                                 continue;
                             }
@@ -372,14 +371,13 @@ public final class ExprChoice extends Expr {
                             newArgs.add(e.accept(viz));
                         else newArgs.add(e);
                     }
-                    return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
-                }
-                else
+                    return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall) chosen).fun, ConstList.make(newArgs), ((ExprBadCall) chosen).extraWeight);
+                } else
                     return chosen.accept(viz);
             }
         }
-        return this;
-    }
+         return this;
+}
 
     public Expr selectInChoiceQTInstance(NumberTranslator.NumberVisitor viz, List<Decl> transDecls){
         for (Expr chosen : choices){

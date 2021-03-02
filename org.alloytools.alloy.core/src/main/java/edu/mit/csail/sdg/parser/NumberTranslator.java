@@ -300,23 +300,9 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprBinary x) throws Err {
-            Expr left = (x.left instanceof ExprChoice) ? ((ExprChoice) x.left).selectInChoice(this) : x.left;
-            Expr right = (x.right instanceof ExprChoice) ? ((ExprChoice) x.right).selectInChoice(this) : x.right ;
-            //Expr newArg = null;
-            //if (x.right instanceof ExprChoice)
-            //    newArg = ((ExprChoice) x.right).selectInChoice(this);
-            /*if (newArg instanceof ExprBadCall){
-                LinkedList<Expr> tinyNewArgs = new LinkedList<Expr>();
-                for (Expr e : ((ExprBadCall)newArg).args){
-                    if (e.type().is_int())
-                        tinyNewArgs.add(translateOneExpr(e));
-                    else
-                        tinyNewArgs.add(e);
-                }
-                newArg = ExprCall.make(newArg.pos, newArg.pos, ((ExprBadCall)newArg).fun, ConstList.make(tinyNewArgs), ((ExprBadCall)newArg).extraWeight);
-            }*/
-            return x.op.make(x.pos,x.closingBracket,left.accept(this),right.accept(this));
-            //return x.op.make(x.pos,x.closingBracket,x.left.accept(this),newArg.accept(this));
+            Expr left = (x.left instanceof ExprChoice) ? ((ExprChoice) x.left).selectInChoice(this) : x.left.accept(this);
+            Expr right = (x.right instanceof ExprChoice) ? ((ExprChoice) x.right).selectInChoice(this) : x.right.accept(this);
+            return x.op.make(x.pos,x.closingBracket,left,right);
         }
 
         @Override
@@ -374,10 +360,8 @@ public class NumberTranslator {
             Expr sub = (x.sub instanceof ExprChoice) ? ((ExprChoice) x.sub).selectInChoiceLETInstance(this,(ExprVar) var) : x.sub.accept(this);
             return ExprLet.make(x.pos, (ExprVar) var, expr, sub);
         }
-
-        @Override
+            @Override
         public Expr visit(ExprQt x) throws Err {
-            Boolean hasInt = false;
             List<Decl> newDecls = new LinkedList<Decl>();
             for (Decl d : x.decls){
                 if (d.expr.type().is_int()){
@@ -388,42 +372,26 @@ public class NumberTranslator {
                             newNames.add(ExprVar.make(n.pos, n.label, actualRep().type));
                         else
                             newNames.add(n);
-                    }
-                    hasInt = true;
+                        }
                     newDecls.add(new Decl(d.isPrivate,d.disjoint,d.disjoint2, ConstList.make(newNames),e));
                 }else
                     newDecls.add(d);
             }
-            Expr newSub;
-            if (x.sub instanceof ExprChoice)
-               newSub = ((ExprChoice)x.sub).selectInChoiceQTInstance(this, newDecls);
-            else
-                //if (hasInt && x.sub instanceof ExprCall){
-                //    newSub = makeNewExprCall((ExprCall) x.sub, newDecls);
-                //}else
+                Expr newSub;
+                if (x.sub instanceof ExprChoice)
+                    newSub = ((ExprChoice)x.sub).selectInChoiceQTInstance(this, newDecls);
+                else
                     newSub = x.sub.accept(this);
-            return x.op.make(x.pos, x.closingBracket, newDecls, newSub);
+                return x.op.make(x.pos, x.closingBracket, newDecls, newSub);
         }
-
-        /*private ExprCall makeNewExprCall(ExprCall call, List<Decl> decls){
-            List<Expr> newArgs = new LinkedList<Expr>();
-            for (Expr a : call.args){
-                if a instanceof E
-            }
-            if (call.fun.label.startsWith("integer/")){
-                for (Func f : actualModuleRep().getAllFunc()){
-                    if (f.label.endsWith(call.fun.label.substring(8)));
-
-                }
-            }
-            return null;
-        }*/
 
         @Override
         public Expr visit(ExprUnary x) throws Err {
+            if (x.sub instanceof ExprChoice){
+                x.sub = ((ExprChoice)x.sub).selectInChoice(this);
+            }
             if (x.sub instanceof ExprConstant && x.sub.type.is_int()){
                 Sig s = numberToFact(((ExprConstant)x.sub).num);
-                //addSigToModule(s);
                 x = (ExprUnary) ExprUnary.Op.NOOP.make(x.pos, s);
                 return x.resolve_as_set(new LinkedList<ErrorWarning>());
             }
@@ -452,138 +420,5 @@ public class NumberTranslator {
         }
     }
 
-    //public NumberVisitor makeAViz(){
-    //    return new NumberVisitor();
-   // }
-
-    public class NumberCheck extends VisitReturn<Boolean>{
-
-        NumberTranslator mainTranslator;
-        public NumberCheck(NumberTranslator translator){
-            mainTranslator = translator;
-        }
-
-        @Override
-        public Boolean visit(ExprBinary x) throws Err {
-            return true;
-            //return x.left.accept(this) && x.right.accept(this);
-        }
-
-        @Override
-        public Boolean visit(ExprList x) throws Err {
-            /*Boolean value = true;
-            for (Expr newArg : x.args)
-                value = value && newArg.accept(this);
-            return value;*/
-            return true;
-        }
-
-        @Override
-        public Boolean visit(ExprCall x) throws Err {
-            /*Boolean value = true;
-            for (Expr e : x.args){
-                if (e.type().is_int())
-                    value = value && false;
-            }
-            return value;*/
-            return true;
-        }
-
-        @Override
-        public Boolean visit(ExprConstant x) throws Err {
-/*
-            if (x.type().is_int()){
-                return false;
-
-            }else
-                return true;*/
-            return true;
-        }
-
-        @Override
-        public Boolean visit(ExprITE x) throws Err {
-           return true;// return x.cond.accept(this) && x.left.accept(this) && x.right.accept(this);
-        }
-
-        @Override
-        public Boolean visit(ExprLet x) throws Err {
-            return true;
-            //return  x.var.accept(this) && x.expr.accept(this) && x.sub.accept(this));
-        }
-
-        @Override
-        public Boolean visit(ExprQt x) throws Err {
-            /*List<Decl> newDecl = new LinkedList<Decl>();
-            for (Decl d : x.decls){
-                Decl nD = new Decl(d.isPrivate,d.disjoint,d.disjoint2,d.names,d.expr.accept(this));
-                newDecl.add(nD);
-            }
-
-            if (x.sub instanceof ExprChoice){
-                for (Expr e : ((ExprChoice) x.sub).choices){
-                    List<Expr> newArgs = new LinkedList<Expr>();
-                    if (!e.toString().startsWith("integer/") && e instanceof ExprBadCall){
-                        //ExprCall newCall;
-                        for (Expr arg : ((ExprBadCall) e).args)
-                            if (arg.type().is_int())
-                                newArgs.add(arg.accept(this));
-                            else
-                                newArgs.add(arg);
-                        Expr newCall = ExprCall.make(e.pos,e.closingBracket,((ExprBadCall) e).fun,newArgs,-1);
-                        return (ExprQt) x.op.make(x.pos, x.closingBracket, ConstList.make(newDecl), newCall);
-                    }
-
-                }
-            }
-
-            return (ExprQt) x.op.make(x.pos,x.closingBracket,newDecl,x.sub.accept(this));*/
-            return true;
-        }
-
-        @Override
-        public Boolean visit(ExprUnary x) throws Err {
-            if (x.sub instanceof ExprChoice){
-                x.sub = ((ExprChoice)x.sub).selectInChoice(new NumberVisitor());
-                return false;
-            }
-            else
-                return true;
-            /*if (x.type().is_int()) {
-                x = (ExprUnary) ExprUnary.Op.NOOP.make(x.pos, number8);
-            }*/
-            // aca sub tiene que ser una prim sig de number8
-            // y type se tiene que pasar a number8
-            //nueva expr unary que reemplace a x.
-            //hacer un visitor que haga check de no exprchoice o badcall, luego replace
-
-            //return x.sub.accept(this);
-        }
-
-        @Override
-        public Boolean visit(ExprVar x) throws Err {
-            /*if (x.type().is_int())
-                return ExprVar.make(x.pos,x.label,number8.type());
-            else
-                return x;*/
-            return true;
-        }
-
-        @Override
-        public Boolean visit(Sig x) throws Err {
-            return true;
-           // return x;
-        }
-
-        @Override
-        public Boolean visit(Sig.Field x) throws Err {
-            return true;
-            //  return x;
-        }
-    }
-
-    public boolean chechCalls(Expr e){
-        NumberCheck chequer = new NumberCheck(this);
-        return e.accept(chequer);
-    }
 
 }

@@ -1658,15 +1658,11 @@ public final class CompModule extends Browsable implements Module {
                     for (ExprHasName n : d.names)
                         cx.put(n.label, n);
                 Expr newBody;
-                //if (!this.moduleName.equals("util/integer") && !this.moduleName.equals("util/int8bits")) {
-                //    NumberTranslator translator = new NumberTranslator(this);
-                //    newBody = cx.check(translator.translateOneExpr(ff.getBody()));
-                //}else
                 newBody = cx.check(ff.getBody());
                 if (ff.isPred)
                     if (!this.moduleName.startsWith("util/")){
                         NumberTranslator translator = new NumberTranslator(this.world);
-                        Boolean correctCall = translator.chechCalls(newBody);
+                        //translator.chechCalls(newBody);
                         newBody = translator.translateOneExpr(newBody).resolve_as_formula(warns);
                     }else
                         newBody = newBody.resolve_as_formula(warns);
