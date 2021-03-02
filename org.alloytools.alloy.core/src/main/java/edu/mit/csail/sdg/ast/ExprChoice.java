@@ -332,16 +332,120 @@ public final class ExprChoice extends Expr {
                     return chosen;
             }
         }
-        /*if (chosen instanceof ExprBadCall){
-            List<Expr> newArgs = new LinkedList<Expr>();
-            for (Expr e : ((ExprBadCall)chosen).args){
-                if (e.type().is_int())
-                    newArgs.add(translator.translateOneExpr(e));
+        return this;
+    }
+
+    private Expr getExprVar(ExprUnary e){
+        while (e.sub instanceof ExprUnary){
+            e = (ExprUnary) e.sub;
+        }
+        if (e.sub instanceof ExprVar)
+            return e.sub;
+        else
+            return e;
+    }
+
+    private boolean hasExprVar(ExprUnary e){
+        while (e.sub instanceof ExprUnary){
+            e = (ExprUnary) e.sub;
+        }
+        if (e.sub instanceof ExprVar)
+            return true;
+        else
+            return false;
+    }
+
+    public Expr selectInChoiceLETInstance(NumberTranslator.NumberVisitor viz, ExprVar var){
+        for (Expr chosen : choices){
+            if (!chosen.toString().startsWith("integer/")){
+                if (chosen instanceof ExprBadCall){
+                    List<Expr> newArgs = new LinkedList<Expr>();
+                    for (Expr e : ((ExprBadCall)chosen).args){
+                        if (e instanceof  ExprUnary){
+                            Expr eAsVar = getExprVar((ExprUnary) e);
+                            if (eAsVar instanceof ExprVar && ((ExprVar) eAsVar).label.equals(var.label)){
+                                newArgs.add(var);
+                                continue;
+                            }
+                        }
+                        if (e.type.is_int())
+                            newArgs.add(e.accept(viz));
+                        else newArgs.add(e);
+                    }
+                    return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
+                }
                 else
-                    newArgs.add(e);
+                    return chosen.accept(viz);
             }
-            return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
-        }*/
+        }
+        return this;
+    }
+
+    public Expr selectInChoiceQTInstance(NumberTranslator.NumberVisitor viz, List<Decl> transDecls){
+        for (Expr chosen : choices){
+            if (!chosen.toString().startsWith("integer/")){
+                if (chosen instanceof ExprBadCall){
+                    List<Expr> newArgs = new LinkedList<Expr>();
+                    for (Expr e : ((ExprBadCall)chosen).args){
+                        if (e instanceof  ExprUnary){
+                            Expr eAsVar = getExprVar((ExprUnary) e);
+                            if (eAsVar instanceof ExprVar) {
+                                for (Decl d : transDecls) {
+                                    for (ExprHasName eName : d.names) {
+                                        if (eName instanceof ExprVar) {
+                                            if (eName.label.equals(((ExprVar) eAsVar).label)) {
+                                                newArgs.add(eName);
+                                                continue;
+                                            }
+                                        }
+                                    }
+                                }
+                            }else {
+                                if (e.type.is_int())
+                                    newArgs.add(e.accept(viz));
+                            }
+                        }
+                        //if (e.type.is_int())
+                        //    newArgs.add(e.accept(viz));
+                        else newArgs.add(e);
+                    }
+                    return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
+                }
+                else
+                    return chosen.accept(viz);
+            }
+        }
+        return this;
+    }
+
+    public Expr selectQTInChoice(NumberTranslator.NumberVisitor viz, List<Decl> decls) {
+        for (Expr chosen : choices){
+            if (!chosen.toString().startsWith("integer/")){
+                if (chosen instanceof ExprBadCall){
+                    List<Expr> newArgs = new LinkedList<Expr>();
+                    for (Expr e : ((ExprBadCall)chosen).args){
+                        if (e instanceof ExprUnary && hasExprVar((ExprUnary) e)) {
+                            Expr eAsVar = getExprVar((ExprUnary) e);
+                            for (Decl d : decls){
+                                for (ExprHasName ee : d.names){
+                                    if (ee.label.equals(((ExprVar) eAsVar).label)){
+                                        newArgs.add(eAsVar.accept(viz));
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        if (e.type.is_int())
+                            newArgs.add(e.accept(viz));
+                        else newArgs.add(e);
+                    }
+                    return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
+                }
+
+                else
+                    return chosen;
+            }
+        }
         return this;
     }
 
