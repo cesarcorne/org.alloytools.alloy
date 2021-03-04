@@ -292,31 +292,11 @@ public final class ExprChoice extends Expr {
         return new ArrayList<Browsable>(0);
     }
 
-    public Expr resolveNumChoice(NumberTranslator translator){
-        Expr chosen = null;
-        for (Expr e : choices){
-            if (!e.toString().startsWith("integer/")){
-                chosen = e;
-                break;
-            }
-        }
-        if (chosen instanceof ExprBadCall){
-            List<Expr> newArgs = new LinkedList<Expr>();
-            for (Expr e : ((ExprBadCall)chosen).args){
-                if (e.type().is_int())
-                    newArgs.add(translator.translateOneExpr(e));
-                else
-                    newArgs.add(e);
-            }
-            return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
-        }
-        return this;
-    }
-
     public Expr selectInChoice(NumberTranslator.NumberVisitor viz){
         for (Expr chosen : choices){
             if (!chosen.toString().startsWith("integer/")){
                 if (chosen instanceof ExprBadCall){
+                    chosen = viz.resolveBadCall((ExprBadCall) chosen);
                     List<Expr> newArgs = new LinkedList<Expr>();
                     for (Expr e : ((ExprBadCall)chosen).args){
                         if (e.type().is_int())
@@ -326,7 +306,6 @@ public final class ExprChoice extends Expr {
                     }
                     return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
                 }
-
                 else
                     return chosen;
             }
@@ -334,7 +313,7 @@ public final class ExprChoice extends Expr {
         return this;
     }
 
-    private Expr getExprVar(ExprUnary e){
+    /*private Expr getExprVar(ExprUnary e){
         while (e.sub instanceof ExprUnary){
             e = (ExprUnary) e.sub;
         }
@@ -415,57 +394,5 @@ public final class ExprChoice extends Expr {
         }
         return this;
     }
-
-    public Expr selectQTInChoice(NumberTranslator.NumberVisitor viz, List<Decl> decls) {
-        for (Expr chosen : choices){
-            if (!chosen.toString().startsWith("integer/")){
-                if (chosen instanceof ExprBadCall){
-                    List<Expr> newArgs = new LinkedList<Expr>();
-                    for (Expr e : ((ExprBadCall)chosen).args){
-                        if (e instanceof ExprUnary && hasExprVar((ExprUnary) e)) {
-                            Expr eAsVar = getExprVar((ExprUnary) e);
-                            for (Decl d : decls){
-                                for (ExprHasName ee : d.names){
-                                    if (ee.label.equals(((ExprVar) eAsVar).label)){
-                                        newArgs.add(eAsVar.accept(viz));
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        if (e.type.is_int())
-                            newArgs.add(e.accept(viz));
-                        else newArgs.add(e);
-                    }
-                    return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
-                }
-
-                else
-                    return chosen;
-            }
-        }
-        return this;
-    }
-
-    public Expr resolveCallChoice(NumberTranslator.NumberVisitor viz){
-        Expr chosen = null;
-        for (Expr e : choices){
-            if (!e.toString().startsWith("integer/")){
-                chosen = e;
-                break;
-            }
-        }
-        if (chosen instanceof ExprBadCall){
-            List<Expr> newArgs = new LinkedList<Expr>();
-            for (Expr e : ((ExprBadCall)chosen).args){
-                if (e.type().is_int())
-                    newArgs.add(e.accept(viz));
-                else
-                    newArgs.add(e);
-            }
-            return ExprCall.make(chosen.pos, chosen.pos, ((ExprBadCall)chosen).fun, ConstList.make(newArgs), ((ExprBadCall)chosen).extraWeight);
-        }
-        return chosen;
-    }
-
+*/
 }
