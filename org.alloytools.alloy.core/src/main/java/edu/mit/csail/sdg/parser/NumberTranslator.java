@@ -295,6 +295,10 @@ public class NumberTranslator {
 
     public class NumberVisitor extends VisitReturn<Expr>{
 
+        /*
+        * TODO revisar resolveBadCall los arg, deben ser visitados siempre? o solo type = int?
+        * */
+
         List<Decl> decls2Keep;
         List<ExprVar> exprs2Keep;
 
@@ -307,54 +311,67 @@ public class NumberTranslator {
             while (e.sub instanceof ExprUnary){
                 e = (ExprUnary) e.sub;
             }
-            if (e.sub instanceof ExprVar)
-                return e.sub;
-            else
-                return e;
+            return (e.sub instanceof ExprVar) ? e.sub : e;
+        }
+
+        private boolean argInDeclList(Expr e) {
+            if (e instanceof ExprUnary) {
+                Expr eAsVar = getExprVar((ExprUnary) e);
+                if (eAsVar instanceof ExprVar)
+                    for (Decl d : this.decls2Keep)
+                        for (ExprHasName eName : d.names)
+                            if (eName instanceof ExprVar)
+                                if (eName.label.equals(((ExprVar) eAsVar).label))
+                                    return true;
+            }
+            return false;
+        }
+
+        private Expr getExprFromDeclList(Expr e){
+            if (e instanceof ExprUnary) {
+                Expr eAsVar = getExprVar((ExprUnary) e);
+                if (eAsVar instanceof ExprVar)
+                    for (Decl d : this.decls2Keep)
+                        for (ExprHasName eName : d.names)
+                            if (eName instanceof ExprVar)
+                                if (eName.label.equals(((ExprVar) eAsVar).label))
+                                    return eName;
+            }
+            return null;
         }
 
         private Expr resolveDeclsInBadCall(ExprBadCall x) {
             List<Expr> newArgs = new LinkedList<Expr>();
-            for (Expr e : x.args) {
+            for (Expr e : x.args)
+                newArgs.add(argInDeclList(e) ? getExprFromDeclList(e) : e);
+            return ExprBadCall.make(x.pos, x.closingBracket, x.fun, ConstList.make(newArgs), x.extraWeight);
+        }
+
+        private boolean argInExprList(Expr e){
+            for (ExprVar var : this.exprs2Keep)
                 if (e instanceof ExprUnary) {
                     Expr eAsVar = getExprVar((ExprUnary) e);
-                    if (eAsVar instanceof ExprVar) {
-                        for (Decl d : this.decls2Keep) {
-                            for (ExprHasName eName : d.names) {
-                                if (eName instanceof ExprVar) {
-                                    if (eName.label.equals(((ExprVar) eAsVar).label)) {
-                                        newArgs.add(eName);
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        if (e.type.is_int())
-                            newArgs.add(e.accept(this));
-                    }
-                } else newArgs.add(e);
+                    if (eAsVar instanceof ExprVar && ((ExprVar) eAsVar).label.equals(var.label))
+                        return true;
+                }
+            return false;
+        }
+
+        private Expr getArgFromList(Expr e){
+            for (ExprVar var : this.exprs2Keep) {
+                if (e instanceof ExprUnary) {
+                    Expr eAsVar = getExprVar((ExprUnary) e);
+                    if (eAsVar instanceof ExprVar && ((ExprVar) eAsVar).label.equals(var.label))
+                        return var;
+                }
             }
-            return ExprBadCall.make(x.pos, x.closingBracket, x.fun, ConstList.make(newArgs), x.extraWeight);
+            return null;
         }
 
         private Expr resolveExprInBadCAll(ExprBadCall x){
             List<Expr> newArgs = new LinkedList<Expr>();
-            for (ExprVar var : this.exprs2Keep) {
-                for (Expr e : x.args) {
-                    if (e instanceof ExprUnary) {
-                        Expr eAsVar = getExprVar((ExprUnary) e);
-                        if (eAsVar instanceof ExprVar && ((ExprVar) eAsVar).label.equals(var.label)) {
-                            newArgs.add(var);
-                            continue;
-                        }
-                    }
-                    if (e.type.is_int())
-                        newArgs.add(e.accept(this));
-                    else newArgs.add(e);
-                }
-            }
-
+            for (Expr e : x.args)
+                newArgs.add((argInExprList(e)) ? getArgFromList(e) : e);
             return ExprBadCall.make(x.pos, x.closingBracket, x.fun, ConstList.make(newArgs), x.extraWeight);
         }
 
@@ -363,26 +380,34 @@ public class NumberTranslator {
                 x = (ExprBadCall) resolveDeclsInBadCall(x);
             if (! exprs2Keep.isEmpty())
                 x = (ExprBadCall) resolveExprInBadCAll(x);
-            return ExprBadCall.make(x.pos, x.pos, x.fun, ConstList.make(x.args), x.extraWeight);
+            List<Expr> newArgs = new LinkedList<Expr>();
+            for (Expr arg : x.args)
+                newArgs.add(arg.type.is_int() ? arg.accept(this) : arg);
+            return ExprCall.make(x.pos, x.pos, x.fun, ConstList.make(newArgs), x.extraWeight);
         }
+
+        public Expr selectInChoice(ExprChoice eBad){
+            for (Expr chosen : eBad.choices){
+                if (!chosen.toString().startsWith("integer/"))
+                    return (chosen instanceof ExprBadCall) ? resolveBadCall((ExprBadCall) chosen) : chosen.accept(this);
+            }
+            return eBad;
+        }
+
 
         @Override
         public Expr visit(ExprBinary x) throws Err {
-            Expr left = (x.left instanceof ExprChoice) ? ((ExprChoice) x.left).selectInChoice(this) : x.left.accept(this);
-            left = (left instanceof ExprBadCall) ? resolveBadCall((ExprBadCall) left) : left;
-            Expr right = (x.right instanceof ExprChoice) ? ((ExprChoice) x.right).selectInChoice(this) : x.right.accept(this);
-            right = (right instanceof ExprBadCall) ? resolveBadCall((ExprBadCall) right) : right;
+            Expr left = (x.left instanceof ExprChoice) ? selectInChoice((ExprChoice) x.left) : x.left.accept(this);
+            Expr right = (x.right instanceof ExprChoice) ? selectInChoice((ExprChoice) x.right) : x.right.accept(this);
             return x.op.make(x.pos,x.closingBracket,left,right);
         }
 
         @Override
         public Expr visit(ExprList x) throws Err {
             LinkedList<Expr> newArgs = new LinkedList<Expr>();
-            for (Expr newArg : x.args) {
-                if (newArg instanceof ExprChoice)
-                    newArg = ((ExprChoice) newArg).selectInChoice(this);
-                newArgs.add(newArg.accept(this));
-            }
+            for (Expr newArg : x.args)
+                newArgs.add(newArg instanceof ExprChoice ? selectInChoice((ExprChoice) newArg) : newArg.accept(this));
+
             ExprList nList = ExprList.make(x.pos,x.closingBracket,x.op,ConstList.make(newArgs));
             return nList;
         }
@@ -390,19 +415,16 @@ public class NumberTranslator {
         @Override
         public Expr visit(ExprCall x) throws Err {
             LinkedList<Expr> newArgs = new LinkedList<Expr>();
-            boolean someint = false;
             for (Expr e : x.args){
                 if (e.type().is_int()) {
                     newArgs.add(e.accept(this));
-                    someint = true;
-                }
-                else
-                    newArgs.add(e);
+                }else
+                    if (e instanceof ExprChoice)
+                        newArgs.add(selectInChoice((ExprChoice) e));
+                    else
+                        newArgs.add(e);
             }
-            if (someint)
                 return ExprCall.make(x.pos, x.pos, x.fun, ConstList.make(newArgs), x.extraWeight);
-            else
-                return ExprCall.make(x.pos, x.pos, x.fun, x.args, x.extraWeight);
         }
 
         @Override
@@ -417,10 +439,10 @@ public class NumberTranslator {
 
         @Override
         public Expr visit(ExprITE x) throws Err {
-            Expr cond = (x.cond instanceof ExprChoice) ? ((ExprChoice) x.cond).selectInChoice(this) : x.cond;
-            Expr left = (x.cond instanceof ExprChoice) ? ((ExprChoice) x.left).selectInChoice(this) : x.left;
-            Expr right = (x.cond instanceof ExprChoice) ? ((ExprChoice) x.right).selectInChoice(this) : x.cond;
-            return ExprITE.make(x.pos, cond.accept(this), left.accept(this), right.accept(this));
+            Expr cond = (x.cond instanceof ExprChoice) ? selectInChoice((ExprChoice) x.cond) : x.cond.accept(this);
+            Expr left = (x.cond instanceof ExprChoice) ? selectInChoice((ExprChoice) x.left) : x.left.accept(this);
+            Expr right = (x.cond instanceof ExprChoice) ? selectInChoice((ExprChoice) x.right) : x.cond.accept(this);
+            return ExprITE.make(x.pos, cond, left, right);
         }
 
         @Override
@@ -428,12 +450,12 @@ public class NumberTranslator {
             Expr var = x.var.accept(this);
             Expr expr = x.expr.accept(this);
             this.exprs2Keep.add((ExprVar)var);
-            //Expr sub = (x.sub instanceof ExprChoice) ? ((ExprChoice) x.sub).selectInChoiceLETInstance(this,(ExprVar) var) : x.sub.accept(this);
-            Expr sub = (x.sub instanceof ExprChoice) ? ((ExprChoice) x.sub).selectInChoice(this) : x.sub.accept(this);
-            this.exprs2Keep.remove((ExprVar)var);
+            Expr sub = (x.sub instanceof ExprChoice) ? selectInChoice((ExprChoice) x.sub) : x.sub.accept(this);
+            this.exprs2Keep.remove(var);
             return ExprLet.make(x.pos, (ExprVar) var, expr, sub);
         }
-            @Override
+
+        @Override
         public Expr visit(ExprQt x) throws Err {
             List<Decl> newDecls = new LinkedList<Decl>();
             for (Decl d : x.decls){
@@ -451,33 +473,28 @@ public class NumberTranslator {
                     newDecls.add(d);
             }
             this.decls2Keep.addAll(newDecls);
-            Expr newSub;
-            if (x.sub instanceof ExprChoice)
-                //newSub = ((ExprChoice)x.sub).selectInChoiceQTInstance(this, newDecls);
-                newSub = ((ExprChoice)x.sub).selectInChoice(this);
-            else
-                newSub = x.sub.accept(this);
-            this.decls2Keep.removeAll(newDecls);
+            Expr newSub = (x.sub instanceof ExprChoice) ? selectInChoice((ExprChoice) x.sub) : x.sub.accept(this);
             return x.op.make(x.pos, x.closingBracket, newDecls, newSub);
         }
 
         @Override
         public Expr visit(ExprUnary x) throws Err {
-            if (x.sub instanceof ExprChoice){
-                x.sub = ((ExprChoice)x.sub).selectInChoice(this);
-            }
-            if (x.sub instanceof ExprBadCall){
-                resolveBadCall((ExprBadCall)x.sub);
-            }
             if (x.sub instanceof ExprConstant && x.sub.type.is_int()){
                 Sig s = numberToFact(((ExprConstant)x.sub).num);
                 x = (ExprUnary) ExprUnary.Op.NOOP.make(x.pos, s);
                 return x.resolve_as_set(new LinkedList<ErrorWarning>());
-            }
-            if (x.type().is_int()) {
-                x = (ExprUnary) x.op.make(x.pos, actualRep());
-            }
-            return x.sub.accept(this);
+            }else
+                if (x.type().is_int()) {
+                    return (ExprUnary) x.op.make(x.pos, actualRep());
+                }else
+                    if (x.sub instanceof ExprChoice){
+                        x.sub = selectInChoice((ExprChoice)x.sub);
+                    }else
+                        if (x.sub instanceof ExprBadCall){
+                            x.sub = resolveBadCall((ExprBadCall)x.sub);
+                        }else
+                            x.sub = x.sub.accept(this);
+                return x.op.make(x.pos, x.sub);
         }
 
         @Override
@@ -499,123 +516,4 @@ public class NumberTranslator {
         }
     }
 
-    /*
-    public class KeepRefVisitor extends VisitReturn<Expr>{
-
-        List<Decl> declList = new LinkedList<Decl>();
-        List<Expr> letExprList = new LinkedList<Expr>();
-
-        public KeepRefVisitor(){}
-
-        public void addDecls(List<Decl> decls){
-            declList.addAll(decls);
-        }
-
-        public void addLetExpr(List<Expr> exprs){
-            letExprList.addAll(exprs);
-        }
-
-        private Expr getExprVar(ExprUnary e){
-            while (e.sub instanceof ExprUnary){
-                e = (ExprUnary) e.sub;
-            }
-            if (e.sub instanceof ExprVar)
-                return e.sub;
-            else
-                return e;
-        }
-
-        private boolean hasExprVar(ExprUnary e){
-            while (e.sub instanceof ExprUnary){
-                e = (ExprUnary) e.sub;
-            }
-            if (e.sub instanceof ExprVar)
-                return true;
-            else
-                return false;
-        }
-
-        private void keepRef(ExprBadCall e, List<Expr> eList){
-            List<Expr> newArgs = new LinkedList<Expr>();
-            for (Expr ee : e.args){
-                if (ee instanceof  ExprUnary){
-                    Expr eAsVar = getExprVar((ExprUnary) ee);
-                    if (eAsVar instanceof ExprVar) {
-                        //falta traducir las decls, tienen que llegar listas
-                        for (Decl d : this.declList) {
-                            for (ExprHasName eName : d.names) {
-                                if (eName instanceof ExprVar) {
-                                    if (eName.label.equals(((ExprVar) eAsVar).label)) {
-                                        newArgs.add(eName);
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                    }else {
-                        if (e.type.is_int())
-                            newArgs.add(e.accept(this));
-                    }
-                }
-                //if (e.type.is_int())
-                //    newArgs.add(e.accept(viz));
-                else newArgs.add(e);
-        }
-
-        @Override
-        public Expr visit(ExprBinary x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(ExprList x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(ExprCall x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(ExprConstant x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(ExprITE x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(ExprLet x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(ExprQt x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(ExprUnary x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(ExprVar x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(Sig x) throws Err {
-            return null;
-        }
-
-        @Override
-        public Expr visit(Sig.Field x) throws Err {
-            return null;
-        }
-    }
-*/
 }
