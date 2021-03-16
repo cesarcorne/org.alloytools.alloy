@@ -460,6 +460,32 @@ public final class CompModule extends Browsable implements Module {
             return ExprITE.make(x.pos, f, a, b);
         }
 
+        //add local method for integer translation
+
+        private boolean integerCall(Expr l, Expr r){
+            boolean leftPath = false;
+            boolean rightPath = false;
+            if (l instanceof ExprChoice){
+                for (Expr c : ((ExprChoice) l).choices) {
+                    if (c instanceof ExprBadCall) {
+                        if (((ExprBadCall) c).fun.label.startsWith("integer/")) {
+                            leftPath = true;
+                        }
+                    }
+                }
+            }
+            if (r instanceof ExprChoice){
+                for (Expr c : ((ExprChoice) r).choices) {
+                    if (c instanceof ExprBadCall) {
+                        if (((ExprBadCall) c).fun.label.startsWith("integer/")) {
+                            rightPath = true;
+                        }
+                    }
+                }
+            }
+            return leftPath && rightPath;
+        }
+
         /** {@inheritDoc} */
         @Override
         public Expr visit(ExprBadJoin x) throws Err {
@@ -473,6 +499,9 @@ public final class CompModule extends Browsable implements Module {
                 return left; // [AM] .cast2sigint();
             // otherwise, process as regular join or as method call
             left = left.typecheck_as_set();
+            //this two lines add for integer translation
+            if (integerCall(left,right))
+                return process(x.pos, x.closingBracket, right.pos, ((ExprChoice) right).choices, ((ExprChoice) right).reasons, left);
             if (!left.errors.isEmpty() || !(right instanceof ExprChoice))
                 return ExprBinary.Op.JOIN.make(x.pos, x.closingBracket, left, right);
             return process(x.pos, x.closingBracket, right.pos, ((ExprChoice) right).choices, ((ExprChoice) right).reasons, left);

@@ -382,7 +382,7 @@ public class NumberTranslator {
                 x = (ExprBadCall) resolveExprInBadCAll(x);
             List<Expr> newArgs = new LinkedList<Expr>();
             for (Expr arg : x.args)
-                newArgs.add(arg.type.is_int() ? arg.accept(this) : arg);
+                newArgs.add(arg instanceof ExprChoice ? selectInChoice((ExprChoice)arg) : arg.accept(this));
             return ExprCall.make(x.pos, x.pos, x.fun, ConstList.make(newArgs), x.extraWeight);
         }
 
@@ -422,7 +422,7 @@ public class NumberTranslator {
                     if (e instanceof ExprChoice)
                         newArgs.add(selectInChoice((ExprChoice) e));
                     else
-                        newArgs.add(e);
+                        newArgs.add(e.accept(this));
             }
                 return ExprCall.make(x.pos, x.pos, x.fun, ConstList.make(newArgs), x.extraWeight);
         }
@@ -474,6 +474,7 @@ public class NumberTranslator {
             }
             this.decls2Keep.addAll(newDecls);
             Expr newSub = (x.sub instanceof ExprChoice) ? selectInChoice((ExprChoice) x.sub) : x.sub.accept(this);
+            this.decls2Keep.removeAll(newDecls);
             return x.op.make(x.pos, x.closingBracket, newDecls, newSub);
         }
 
