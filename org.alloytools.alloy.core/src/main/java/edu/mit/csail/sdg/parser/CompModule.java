@@ -30,16 +30,7 @@ import static edu.mit.csail.sdg.ast.Sig.UNIV;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import edu.mit.csail.sdg.alloy4.A4Reporter;
 import edu.mit.csail.sdg.alloy4.ConstList;
@@ -483,7 +474,7 @@ public final class CompModule extends Browsable implements Module {
                     }
                 }
             }
-            return leftPath && rightPath;
+            return leftPath || rightPath;
         }
 
         /** {@inheritDoc} */
@@ -495,13 +486,16 @@ public final class CompModule extends Browsable implements Module {
             if (right instanceof Macro)
                 return ((Macro) right).addArg(left).instantiate(this, warns);
             // check to see if it is the special builtin function "Int[]"
+            if (integerCall(left,right) && !this.rootmodule.moduleName.startsWith("util/integer"))
+                return process(x.pos, x.closingBracket, right.pos, ((ExprChoice) right).choices, ((ExprChoice) right).reasons, left);
+
             if (left.type().is_int() && right.isSame(Sig.SIGINT))
                 return left; // [AM] .cast2sigint();
             // otherwise, process as regular join or as method call
             left = left.typecheck_as_set();
             //this two lines add for integer translation
-            if (integerCall(left,right))
-                return process(x.pos, x.closingBracket, right.pos, ((ExprChoice) right).choices, ((ExprChoice) right).reasons, left);
+            //if (integerCall(left,right))
+            //    return process(x.pos, x.closingBracket, right.pos, ((ExprChoice) right).choices, ((ExprChoice) right).reasons, left);
             if (!left.errors.isEmpty() || !(right instanceof ExprChoice))
                 return ExprBinary.Op.JOIN.make(x.pos, x.closingBracket, left, right);
             return process(x.pos, x.closingBracket, right.pos, ((ExprChoice) right).choices, ((ExprChoice) right).reasons, left);
@@ -1542,6 +1536,11 @@ public final class CompModule extends Browsable implements Module {
             PrimSig p = (PrimSig) parent;
             realSig = new PrimSig(fullname, p, oldS.attributes.toArray(new Attr[0]));
         }
+        /*for (Expr actualFact : realSig.getFacts()){
+            NumberTranslator translator = new NumberTranslator(res);
+            Expr newFact = translator.translateOneExpr(actualFact);
+            realSig.replaceFact(actualFact, newFact);
+        }*/
         res.new2old.put(realSig, oldS);
         res.sig2module.put(realSig, u);
         for (CompModule m : res.allModules) {
@@ -1815,7 +1814,9 @@ public final class CompModule extends Browsable implements Module {
             } else
                 errors = errors.make(expr.errors);
         }
-        for (Sig s : sigs.values()) {
+        LinkedList<Sig> actualSigs = new LinkedList<Sig>();
+        actualSigs.addAll(sigs.values());
+        for (Sig s : actualSigs) {
             Expr f = res.old2appendedfacts.get(res.new2old.get(s));
             if (f == null)
                 continue;
@@ -1825,17 +1826,26 @@ public final class CompModule extends Browsable implements Module {
             cx.rootsig = s;
             if (s.isOne == null) {
                 cx.put("this", s.decl.get());
-                formula = cx.check(f).resolve_as_formula(warns);
+                formula = cx.check(f);
+                /*Expr checked = cx.check(f);
+                NumberTranslator translator = new NumberTranslator(this.world);
+                formula = translator.translateOneExpr(checked).resolve_as_formula(warns);*/
             } else {
                 cx.put("this", s);
-                formula = cx.check(f).resolve_as_formula(warns);
+                formula = cx.check(f);
+                /*Expr checked = cx.check(f);
+                NumberTranslator translator = new NumberTranslator(this.world);
+                formula = translator.translateOneExpr(checked).resolve_as_formula(warns);*/
             }
+
+            NumberTranslator translator = new NumberTranslator(this.world);
+            Expr Nformula = translator.translateOneExpr(formula).resolve_as_formula(warns);
             cx.remove("this");
-            if (formula.errors.size() > 0)
-                errors = errors.make(formula.errors);
+            if (Nformula.errors.size() > 0)
+                errors = errors.make(Nformula.errors);
             else {
-                s.addFact(formula);
-                rep.typecheck("Fact " + s + "$fact: " + formula.type() + "\n");
+                s.addFact(Nformula);
+                rep.typecheck("Fact " + s + "$fact: " + Nformula.type() + "\n");
             }
         }
         return errors;
@@ -2036,12 +2046,16 @@ public final class CompModule extends Browsable implements Module {
             cx.rootsig = s;
             cx.put("this", s.decl.get());
             Expr bound;
-            if (d.expr.toString().equals("Int")){
+            Expr checked = cx.check(d.expr);
+            NumberTranslator translator = new NumberTranslator(m);
+            bound = translator.translateOneExpr(checked).resolve_as_set(warns);
+            /*if (d.expr.toString().equals("Int")){
                 NumberTranslator translator = new NumberTranslator(m);
                 bound = cx.check(translator.actualRep()).resolve_as_set(warns);
             }
             else
-                bound = cx.check(d.expr).resolve_as_set(warns);
+                bound = cx.check(d.expr).resolve_as_set(warns);*/
+
             cx.remove("this");
             String[] names = new String[d.names.size()];
             for (int i = 0; i < names.length; i++)

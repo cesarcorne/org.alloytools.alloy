@@ -467,7 +467,7 @@ public class NumberTranslator {
                             newNames.add(ExprVar.make(n.pos, n.label, actualRep().type));
                         else
                             newNames.add(n);
-                        }
+                    }
                     newDecls.add(new Decl(d.isPrivate,d.disjoint,d.disjoint2, ConstList.make(newNames),e));
                 }else
                     newDecls.add(d);
